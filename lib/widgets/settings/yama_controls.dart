@@ -17,6 +17,7 @@
  */
 
 import 'package:flauncher/models/yama_settings.dart';
+import 'package:flauncher/yama_focus.dart';
 import 'package:flauncher/widgets/rounded_switch_list_tile.dart';
 import 'package:flutter/material.dart';
 
@@ -34,6 +35,7 @@ class YamaSettingsPage extends StatelessWidget {
       const Divider(),
       Expanded(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
         ),
       ),
@@ -144,19 +146,28 @@ class _FocusHighlightState extends State<FocusHighlight> {
 
   @override
   Widget build(BuildContext context) {
-    final Color accent = Theme.of(context).colorScheme.primary;
+    final Color fill = yamaFocusFill(Theme.of(context).colorScheme.primary);
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,
-      onFocusChange: (focused) => setState(() => _focused = focused),
+      onFocusChange: (focused) {
+        setState(() => _focused = focused);
+        if (focused) {
+          // Keep the selected row fully visible, away from the panel edges.
+          Scrollable.ensureVisible(context, alignment: 0.35);
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         margin: const EdgeInsets.symmetric(vertical: 2),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: _focused ? accent.withOpacity(0.32) : Colors.transparent,
+          color: _focused ? fill : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _focused ? accent : Colors.transparent, width: 2),
+          border: Border.all(
+            color: _focused ? yamaFocusOutline : Colors.transparent,
+            width: yamaFocusOutlineWidth,
+          ),
         ),
         child: widget.child,
       ),

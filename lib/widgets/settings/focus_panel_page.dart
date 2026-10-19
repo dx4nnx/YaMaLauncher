@@ -33,6 +33,15 @@ class FocusPanelPage extends StatelessWidget {
     return YamaSettingsPage(
       title: "Focus effects",
       children: [
+        if (s.smoothMode)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+            child: Text(
+              "Smooth mode is on, so glow and drop shadow are replaced by a solid outline. "
+              "Turn Smooth mode off in the main settings menu to use them.",
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         YamaDropdown<FocusEffect>(
           label: "Selected card effect",
           icon: Icons.auto_awesome,

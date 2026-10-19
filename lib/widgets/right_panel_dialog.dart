@@ -16,8 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'dart:ui' show ImageFilter;
-
 import 'package:flauncher/actions.dart';
 import 'package:flutter/material.dart';
 
@@ -41,20 +39,16 @@ class RightPanelDialog extends StatelessWidget {
       insetPadding: EdgeInsets.only(left: MediaQuery.of(context).size.width - width),
       shape: const RoundedRectangleBorder(borderRadius: radius),
       clipBehavior: Clip.antiAlias,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-        child: Container(
+      // Solid panel, no live blur: blurring what's behind costs a lot on TV chips.
+      child: Container(
           decoration: BoxDecoration(
             borderRadius: radius,
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF1A2238).withOpacity(0.78),
-                const Color(0xFF101626).withOpacity(0.86),
-              ],
+              colors: [Color(0xF21A2238), Color(0xF7101626)],
             ),
-            border: Border(left: BorderSide(color: Colors.white.withOpacity(0.14))),
+            border: Border.all(color: Colors.white.withOpacity(0.12)),
           ),
           child: Align(
             alignment: Alignment.centerRight,
@@ -63,7 +57,6 @@ class RightPanelDialog extends StatelessWidget {
               child: Actions(actions: { BackIntent: BackAction(context) }, child: child),
             ),
           ),
-        ),
       ),
     );
   }

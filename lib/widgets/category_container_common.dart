@@ -57,7 +57,8 @@ Widget categoryContainerEmptyState(BuildContext context) {
 /// Category title plus content, optionally inside YaMa's soft glass "dock".
 Widget yamaCategoryShell(BuildContext context, String title, Widget content) {
   final shell = context.select<SettingsService, ({bool titles, bool dock, int opacity, bool blur})>(
-    (s) => (titles: s.showCategoryTitles, dock: s.dockEnabled, opacity: s.dockOpacity, blur: s.dockBlur),
+    // Smooth mode never blurs the dock (live blur is very slow on TV chips).
+    (s) => (titles: s.showCategoryTitles, dock: s.dockEnabled, opacity: s.dockOpacity, blur: s.dockBlur && !s.smoothMode),
   );
 
   final Widget column = Column(

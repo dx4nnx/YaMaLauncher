@@ -59,6 +59,9 @@ class AppCard extends StatefulWidget
 class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   bool _moving = false;
 
+  /// Whether this card itself has focus (tracked directly from its InkWell).
+  bool _focused = false;
+
   late Future<Tuple2<AppImageType, ImageProvider>> _appImageLoadFuture;
   late bool _imageLoadedAsIcon;
   late final AnimationController _animation = AnimationController(
@@ -105,6 +108,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       int tintColor,
       double tint,
       double dim,
+      bool smooth,
     })>((s) => (
       shape: s.cardShape,
       radius: s.cornerRadius.toDouble(),
@@ -118,6 +122,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       tintColor: s.focusTintColor,
       tint: (s.focusTintStrength / 100).clamp(0.0, 1.0).toDouble(),
       dim: (s.unfocusedDim / 100).clamp(0.0, 0.9).toDouble(),
+      smooth: s.smoothMode,
     ));
 
     final CardShape shape = look.shape;
@@ -142,7 +147,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         final bool focusedStill = shouldHighlight && !_moving;
 
         final FocusEffect effect = look.effect;
-        final bool showGlow = effect == FocusEffect.glow && focusedStill;
+        // Smooth mode keeps the solid ring but skips the costly glow and shadow.
+        final bool showGlow = effect == FocusEffect.glow && focusedStill && !look.smooth;
         _driveGlow(showGlow ? look.glowAnimation : null);
 
         final Color glowColor = Color(look.glowColor);
@@ -155,7 +161,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         final Widget card = AspectRatio(
           aspectRatio: cardAspectRatio(shape),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
+            duration: look.smooth ? Duration.zero : const Duration(milliseconds: 160),
             curve: Curves.easeOut,
             transformAlignment: Alignment.center,
             transform: _scaleTransform(context, look.zoom),
@@ -169,7 +175,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                     shape: cardBorder,
                     clipBehavior: Clip.antiAlias,
                     color: shape == CardShape.banner ? null : Color(look.iconColor),
-                    elevation: effect == FocusEffect.shadow && shouldHighlight ? 16 : 0,
+                    elevation: effect == FocusEffect.shadow && shouldHighlight && !look.smooth ? 16 : 0,
                     shadowColor: Colors.black,
                     child: Stack(
                       fit: StackFit.expand,
@@ -182,18 +188,15 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                           onTap: () => _onPressed(context, LogicalKeyboardKey.enter),
                           onLongPress: () => _onLongPress(context, LogicalKeyboardKey.enter),
                           onFocusChange: (focused) {
-                            Scrollable.ensureVisible(
-                              context,
-                              // This specific alignment value is not only
-                              // to center the focused card in the row while
-                              // scrolling, but to prevent the topmost category
-                              // title to be hidden by the content above it when
-                              // scrolling from the app bar. How it relates to this,
-                              // I don't know
-                              alignment: 0.5,
-                              curve: Curves.easeInOut,
-                              duration: Duration(milliseconds: 100)
-                            );
+                            if (focused != _focused) {
+                              setState(() => _focused = focused);
+                            }
+                            if (focused) {
+                              // Jump straight to the card. An animated scroll makes
+                              // the remote's next press measure moving cards, which
+                              // on slow TVs skips apps or leaves two looking selected.
+                              Scrollable.ensureVisible(context, alignment: 0.5);
+                            }
                           },
                         ),
                         if (_moving) ..._arrows(),
@@ -253,7 +256,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                         style: Theme.of(context).textTheme.bodySmall!.copyWith(
                           fontWeight: shouldHighlight ? FontWeight.w600 : FontWeight.w400,
                           color: shouldHighlight ? Colors.white : Colors.white70,
-                          shadows: [const Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 6)],
+                          shadows: [const Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 3)],
                         ),
                       )
                     : const SizedBox.shrink(),
@@ -434,7 +437,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
 
   bool _shouldHighlight(BuildContext context)
   {
-    return FocusManager.instance.highlightMode == FocusHighlightMode.traditional && Focus.of(context).hasFocus;
+    return FocusManager.instance.highlightMode == FocusHighlightMode.traditional && _focused;
   }
 
   Matrix4 _scaleTransform(BuildContext context, double zoom) {

@@ -49,6 +49,7 @@ abstract class YamaKeys {
   static const dockOpacity = "dock_opacity";
   static const dockBlur = "dock_blur";
   static const hideEmptyCategories = "hide_empty_categories";
+  static const smoothMode = "smooth_mode";
   static const cardsAcross = "cards_across";
   /// Same key FLauncher already uses, so themes can include it.
   static const categoryTitles = "show_category_titles";
@@ -109,6 +110,7 @@ const Map<String, Object> appearanceDefaults = {
   YamaKeys.dockOpacity: 10,
   YamaKeys.dockBlur: false,
   YamaKeys.hideEmptyCategories: true,
+  YamaKeys.smoothMode: true,
   YamaKeys.cardsAcross: 0,
   YamaKeys.categoryTitles: true,
   YamaKeys.appsPosition: "top",

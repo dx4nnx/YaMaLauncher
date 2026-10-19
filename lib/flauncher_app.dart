@@ -28,6 +28,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'flauncher.dart';
+import 'yama_focus.dart';
 
 class FLauncherApp extends StatelessWidget
 {
@@ -123,14 +124,26 @@ class FLauncherApp extends StatelessWidget
       dialogBackgroundColor: const Color(0xEE182036),
       scaffoldBackgroundColor: const Color(0xFF101626),
       // Strong, obvious focus: you should never have to guess what's selected.
-      focusColor: accent.withOpacity(0.45),
+      focusColor: yamaFocusFill(accent),
       hoverColor: accent.withOpacity(0.12),
       dividerColor: Colors.white.withOpacity(0.10),
       textButtonTheme: TextButtonThemeData(style: _focusStyle(accent, 14)),
       iconButtonTheme: IconButtonThemeData(style: _focusStyle(accent, 40)),
+      // Coloured buttons (Save, Delete…) keep their colour and get a thick
+      // white outline plus a lighter tint when selected.
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ButtonStyle(
+          side: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.focused)
+              ? const BorderSide(color: yamaFocusOutline, width: yamaFocusOutlineWidth)
+              : BorderSide.none),
+          overlayColor: WidgetStateProperty.resolveWith((states) =>
+              states.contains(WidgetState.focused) ? Colors.white.withOpacity(0.22) : null),
+          elevation: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.focused) ? 6 : 0),
+        ),
+      ),
       listTileTheme: ListTileThemeData(
         selectedColor: Colors.white,
-        selectedTileColor: accent.withOpacity(0.35),
+        selectedTileColor: yamaFocusFill(accent),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       switchTheme: SwitchThemeData(
@@ -167,11 +180,12 @@ class FLauncherApp extends StatelessWidget
   static ButtonStyle _focusStyle(Color accent, double radius) => ButtonStyle(
     foregroundColor: const WidgetStatePropertyAll(Colors.white),
     backgroundColor: WidgetStateProperty.resolveWith((states) =>
-        states.contains(WidgetState.focused) ? accent.withOpacity(0.42) : Colors.transparent),
+        states.contains(WidgetState.focused) ? yamaFocusFill(accent) : Colors.transparent),
     overlayColor: WidgetStateProperty.resolveWith((states) =>
-        states.contains(WidgetState.pressed) ? accent.withOpacity(0.30) : Colors.transparent),
-    side: WidgetStateProperty.resolveWith((states) =>
-        states.contains(WidgetState.focused) ? BorderSide(color: accent, width: 2) : BorderSide.none),
+        states.contains(WidgetState.pressed) ? Colors.white.withOpacity(0.15) : Colors.transparent),
+    side: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.focused)
+        ? const BorderSide(color: yamaFocusOutline, width: yamaFocusOutlineWidth)
+        : BorderSide.none),
     shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius))),
   );
 }

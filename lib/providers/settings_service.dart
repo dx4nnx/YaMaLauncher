@@ -125,6 +125,8 @@ class SettingsService extends ChangeNotifier {
   int get textScale => _int(YamaKeys.textScale);
   int get accentColor => _int(YamaKeys.accentColor);
 
+  /// Faster on slow TVs: no glow, shadows or slide animations.
+  bool get smoothMode => _bool(YamaKeys.smoothMode);
   int get cardsAcross => _int(YamaKeys.cardsAcross);
   AppsPosition get appsPosition =>
       enumFromName(AppsPosition.values, _string(YamaKeys.appsPosition), AppsPosition.top);

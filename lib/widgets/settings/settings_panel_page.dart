@@ -28,6 +28,7 @@ import 'package:flauncher/widgets/settings/focus_panel_page.dart';
 import 'package:flauncher/widgets/settings/layout_panel_page.dart';
 import 'package:flauncher/widgets/settings/themes_panel_page.dart';
 import 'package:flauncher/widgets/settings/yama_controls.dart';
+import 'package:flauncher/models/yama_settings.dart';
 import 'package:flauncher/widgets/settings/status_bar_panel_page.dart';
 import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
 import 'package:flutter/material.dart';
@@ -80,6 +81,12 @@ class SettingsPanelPage extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pushNamed(LauncherSectionsPanelPage.routeName),
                   ),
                   const YamaSectionHeader("Look"),
+                  YamaSwitch(
+                    label: "Smooth mode (faster on slow TVs)",
+                    icon: Icons.speed,
+                    value: settingsService.smoothMode,
+                    onChanged: (v) => settingsService.setValue(YamaKeys.smoothMode, v),
+                  ),
                   YamaNavButton(
                     icon: Icons.style_outlined,
                     label: "Themes & idle",
