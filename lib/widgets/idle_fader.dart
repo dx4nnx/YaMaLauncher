@@ -104,9 +104,11 @@ class _IdleFaderState extends State<IdleFader> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final SettingsService settings = context.watch<SettingsService>();
-    if (settings.idleTimeout != _timeout) {
-      _timeout = settings.idleTimeout;
+    final idle = context.select<SettingsService, ({int timeout, int opacity})>(
+      (s) => (timeout: s.idleTimeout, opacity: s.idleOpacity),
+    );
+    if (idle.timeout != _timeout) {
+      _timeout = idle.timeout;
       if (_timeout == 0) {
         _idle = false;
       }
@@ -116,7 +118,7 @@ class _IdleFaderState extends State<IdleFader> with WidgetsBindingObserver {
     return AnimatedOpacity(
       duration: Duration(milliseconds: _idle ? 1500 : 250),
       curve: Curves.easeInOut,
-      opacity: _idle ? (settings.idleOpacity / 100).clamp(0.0, 1.0).toDouble() : 1.0,
+      opacity: _idle ? (idle.opacity / 100).clamp(0.0, 1.0).toDouble() : 1.0,
       child: widget.child,
     );
   }

@@ -7,6 +7,8 @@ A glassy, soft home screen for **Android TV and Fire TV**, built on the open-sou
 ## What YaMa adds
 
 **Look & layout** (Settings → Layout & cards)
+- Apps at the top, or at the bottom to leave room for poster-style (TMDB) wallpapers
+- Apps across the screen: 2 to 8 big cards, or per-category sizes (grids go down to 1 column)
 - Card shape: wide banner, square icon or round icon, with a translucent background for icon cards
 - App names: hidden, on the selected app only, or always
 - Zoom on the selected app, corner roundness, space between apps and rows
@@ -21,18 +23,19 @@ A glassy, soft home screen for **Android TV and Fire TV**, built on the open-sou
 - Optional tint on the selected card, and dimming of the others
 
 **Wallpaper**
-- Gradient, single picture, solid color, or a slideshow of your own pictures
+- Gradient, single picture, solid color, a slideshow of your own pictures, **Reddit** (any subreddits; wide pictures only, adult posts skipped) or **web image links**
 - Slideshow timer (15 s to 6 h) and transitions: fade, zoom, slide sideways, slide up, or random
 - Press **Play/Pause** on the remote for the next picture
 - Blur, dim, brightness, color intensity, color tint and a soft top/bottom shadow
 
 **Clock & text**
 - Clock color, size and shadow; one-line or two-line (time above date)
-- Fonts: Nunito, Quicksand, Comfortaa, Inter, Lexend or the system font; adjustable text size
+- Fonts: **Poppins** (default), Nunito, Quicksand, Comfortaa, Inter, Lexend or the system font; adjustable text size
 - Accent color for menus and switches
 
 **Themes & idle**
-- Built-in looks: YaMa Glass, Frosted Icons, Bubble, Night Calm, Classic FLauncher
+- Three saved themes of your own, with names
+- Built-in looks: YaMa Glass, Frosted Icons, Bubble, Night Calm, Poster (apps at bottom), Classic FLauncher
 - Save your look to a file and load it back (`Android/data/app.yama.launcher/files/yama-theme.json`)
 - Idle mode: after a set time the apps fade away, leaving the wallpaper and clock; the first button press only wakes the screen
 

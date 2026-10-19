@@ -57,7 +57,8 @@ class FLauncherApp extends StatelessWidget
     LauncherState launcherState = context.read<LauncherState>();
     launcherState.refresh(appsService);
 
-    return Consumer<SettingsService>(
+    return Selector<SettingsService, ({String font, int scale, int accent})>(
+      selector: (_, s) => (font: s.fontFamily, scale: s.textScale, accent: s.accentColor),
       builder: (context, settings, _) => MaterialApp(
       shortcuts: {
         ...WidgetsApp.defaultShortcuts,
@@ -77,11 +78,11 @@ class FLauncherApp extends StatelessWidget
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       title: 'YaMa Launcher',
-      theme: _yamaTheme(settings),
+      theme: _yamaTheme(settings.font, settings.accent),
       builder: (context, child) {
         final MediaQueryData media = MediaQuery.of(context);
         return MediaQuery(
-          data: media.copyWith(textScaler: TextScaler.linear((settings.textScale / 100).clamp(0.7, 1.6).toDouble())),
+          data: media.copyWith(textScaler: TextScaler.linear((settings.scale / 100).clamp(0.7, 1.6).toDouble())),
           child: child!,
         );
       },
@@ -98,9 +99,9 @@ class FLauncherApp extends StatelessWidget
     ));
   }
 
-  static ThemeData _yamaTheme(SettingsService settings) {
-    final Color accent = Color(settings.accentColor);
-    final String? family = settings.fontFamily == "System" ? null : settings.fontFamily;
+  static ThemeData _yamaTheme(String font, int accentColor) {
+    final Color accent = Color(accentColor);
+    final String? family = font == "System" ? null : font;
     const Color surface = Color(0xFF151B2E);
     final ColorScheme scheme = ColorScheme.fromSeed(
       seedColor: accent,
@@ -121,14 +122,16 @@ class FLauncherApp extends StatelessWidget
       canvasColor: const Color(0xFF1C2540),
       dialogBackgroundColor: const Color(0xEE182036),
       scaffoldBackgroundColor: const Color(0xFF101626),
-      focusColor: accent.withOpacity(0.28),
+      // Strong, obvious focus: you should never have to guess what's selected.
+      focusColor: accent.withOpacity(0.45),
       hoverColor: accent.withOpacity(0.12),
       dividerColor: Colors.white.withOpacity(0.10),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ),
+      textButtonTheme: TextButtonThemeData(style: _focusStyle(accent, 14)),
+      iconButtonTheme: IconButtonThemeData(style: _focusStyle(accent, 40)),
+      listTileTheme: ListTileThemeData(
+        selectedColor: Colors.white,
+        selectedTileColor: accent.withOpacity(0.35),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) =>
@@ -159,4 +162,16 @@ class FLauncherApp extends StatelessWidget
       ),
     );
   }
+
+  /// Buttons get a filled accent background and an outline while focused.
+  static ButtonStyle _focusStyle(Color accent, double radius) => ButtonStyle(
+    foregroundColor: const WidgetStatePropertyAll(Colors.white),
+    backgroundColor: WidgetStateProperty.resolveWith((states) =>
+        states.contains(WidgetState.focused) ? accent.withOpacity(0.42) : Colors.transparent),
+    overlayColor: WidgetStateProperty.resolveWith((states) =>
+        states.contains(WidgetState.pressed) ? accent.withOpacity(0.30) : Colors.transparent),
+    side: WidgetStateProperty.resolveWith((states) =>
+        states.contains(WidgetState.focused) ? BorderSide(color: accent, width: 2) : BorderSide.none),
+    shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius))),
+  );
 }

@@ -25,7 +25,9 @@ enum FocusEffect { none, shadow, glow }
 
 enum GlowAnimation { still, breathe, pulse, shimmer }
 
-enum WallpaperMode { gradient, image, solid, slideshow }
+enum WallpaperMode { gradient, image, solid, slideshow, reddit, web }
+
+enum AppsPosition { top, bottom }
 
 enum SlideEffect { fade, zoom, slideHorizontal, slideVertical, random }
 
@@ -47,6 +49,10 @@ abstract class YamaKeys {
   static const dockOpacity = "dock_opacity";
   static const dockBlur = "dock_blur";
   static const hideEmptyCategories = "hide_empty_categories";
+  static const cardsAcross = "cards_across";
+  /// Same key FLauncher already uses, so themes can include it.
+  static const categoryTitles = "show_category_titles";
+  static const appsPosition = "apps_position";
   static const iconCardColor = "icon_card_color";
 
   // Focus
@@ -70,6 +76,8 @@ abstract class YamaKeys {
   static const wallpaperShadow = "wallpaper_shadow";
   static const slideshowInterval = "slideshow_interval";
   static const slideshowTransition = "slideshow_transition";
+  static const redditSubreddits = "reddit_subreddits";
+  static const webImageUrls = "web_image_urls";
 
   // Clock & text
   static const clockColor = "clock_color";
@@ -101,15 +109,18 @@ const Map<String, Object> appearanceDefaults = {
   YamaKeys.dockOpacity: 10,
   YamaKeys.dockBlur: false,
   YamaKeys.hideEmptyCategories: true,
+  YamaKeys.cardsAcross: 0,
+  YamaKeys.categoryTitles: true,
+  YamaKeys.appsPosition: "top",
   YamaKeys.iconCardColor: 0x33FFFFFF,
 
   YamaKeys.focusEffect: "glow",
   YamaKeys.glowColor: 0xFFBFD7FF,
   YamaKeys.glowSize: 12,
-  YamaKeys.glowAnimation: "breathe",
+  YamaKeys.glowAnimation: "still",
   YamaKeys.focusTintColor: 0xFFFFFFFF,
   YamaKeys.focusTintStrength: 0,
-  YamaKeys.unfocusedDim: 12,
+  YamaKeys.unfocusedDim: 30,
 
   YamaKeys.wallpaperMode: "gradient",
   YamaKeys.wallpaperSolidColor: 0xFF1B2440,
@@ -122,12 +133,14 @@ const Map<String, Object> appearanceDefaults = {
   YamaKeys.wallpaperShadow: 35,
   YamaKeys.slideshowInterval: 300,
   YamaKeys.slideshowTransition: "fade",
+  YamaKeys.redditSubreddits: "wallpaper, WidescreenWallpaper",
+  YamaKeys.webImageUrls: "",
 
   YamaKeys.clockColor: 0xFFFFFFFF,
   YamaKeys.clockSize: 24,
   YamaKeys.clockShadow: true,
   YamaKeys.clockTwoLines: false,
-  YamaKeys.fontFamily: "Nunito",
+  YamaKeys.fontFamily: "Poppins",
   YamaKeys.textScale: 100,
   YamaKeys.accentColor: 0xFF9DB8FF,
 
@@ -152,12 +165,15 @@ const List<int> yamaPalette = [
   0xFF000000, // black
 ];
 
-const List<String> yamaFonts = ["System", "Nunito", "Quicksand", "Comfortaa", "Inter", "Lexend"];
+const List<String> yamaFonts = ["System", "Poppins", "Nunito", "Quicksand", "Comfortaa", "Inter", "Lexend"];
 
 /// Built-in theme presets. Keys not listed keep their current value.
 const Map<String, Map<String, Object>> yamaPresets = {
   "YaMa Glass": appearanceDefaults,
   "Frosted Icons": {
+    YamaKeys.appsPosition: "top",
+    YamaKeys.cardsAcross: 0,
+    YamaKeys.categoryTitles: true,
     YamaKeys.cardShape: "square",
     YamaKeys.labelMode: "always",
     YamaKeys.cornerRadius: 24,
@@ -168,12 +184,15 @@ const Map<String, Map<String, Object>> yamaPresets = {
     YamaKeys.iconCardColor: 0x40FFFFFF,
     YamaKeys.focusEffect: "glow",
     YamaKeys.glowColor: 0xFFFFFFFF,
-    YamaKeys.glowAnimation: "breathe",
+    YamaKeys.glowAnimation: "still",
     YamaKeys.wallpaperBlur: 8,
     YamaKeys.wallpaperDim: 10,
     YamaKeys.fontFamily: "Quicksand",
   },
   "Bubble": {
+    YamaKeys.appsPosition: "top",
+    YamaKeys.cardsAcross: 0,
+    YamaKeys.categoryTitles: true,
     YamaKeys.cardShape: "circle",
     YamaKeys.labelMode: "focused",
     YamaKeys.focusZoom: 1.2,
@@ -186,6 +205,9 @@ const Map<String, Map<String, Object>> yamaPresets = {
     YamaKeys.accentColor: 0xFFFF9EB5,
   },
   "Night Calm": {
+    YamaKeys.appsPosition: "top",
+    YamaKeys.cardsAcross: 0,
+    YamaKeys.categoryTitles: true,
     YamaKeys.cardShape: "banner",
     YamaKeys.labelMode: "never",
     YamaKeys.cornerRadius: 12,
@@ -198,7 +220,26 @@ const Map<String, Map<String, Object>> yamaPresets = {
     YamaKeys.fontFamily: "Inter",
     YamaKeys.idleTimeout: 120,
   },
+  "Poster (apps at bottom)": {
+    YamaKeys.appsPosition: "bottom",
+    YamaKeys.cardShape: "banner",
+    YamaKeys.labelMode: "never",
+    YamaKeys.cardsAcross: 6,
+    YamaKeys.dockEnabled: false,
+    YamaKeys.categoryTitles: false,
+    YamaKeys.wallpaperShadow: 70,
+    YamaKeys.wallpaperDim: 0,
+    YamaKeys.wallpaperBlur: 0,
+    YamaKeys.focusEffect: "glow",
+    YamaKeys.glowColor: 0xFFFFFFFF,
+    YamaKeys.unfocusedDim: 35,
+    YamaKeys.marginLeft: 48,
+    YamaKeys.marginRight: 48,
+  },
   "Classic FLauncher": {
+    YamaKeys.appsPosition: "top",
+    YamaKeys.cardsAcross: 0,
+    YamaKeys.categoryTitles: true,
     YamaKeys.cardShape: "banner",
     YamaKeys.labelMode: "never",
     YamaKeys.focusZoom: 1.1,

@@ -125,6 +125,12 @@ class SettingsService extends ChangeNotifier {
   int get textScale => _int(YamaKeys.textScale);
   int get accentColor => _int(YamaKeys.accentColor);
 
+  int get cardsAcross => _int(YamaKeys.cardsAcross);
+  AppsPosition get appsPosition =>
+      enumFromName(AppsPosition.values, _string(YamaKeys.appsPosition), AppsPosition.top);
+  String get redditSubreddits => _string(YamaKeys.redditSubreddits);
+  String get webImageUrls => _string(YamaKeys.webImageUrls);
+
   int get idleTimeout => _int(YamaKeys.idleTimeout);
   int get idleOpacity => _int(YamaKeys.idleOpacity);
 
@@ -165,6 +171,39 @@ class SettingsService extends ChangeNotifier {
     for (final key in appearanceDefaults.keys) {
       await _sharedPreferences.remove(key);
     }
+    notifyListeners();
+  }
+
+  // ---- Your own saved themes ----------------------------------------------
+
+  static const int customThemeSlots = 3;
+
+  bool hasCustomTheme(int slot) => _sharedPreferences.containsKey("yama_custom_theme_$slot");
+
+  String customThemeName(int slot) =>
+      _sharedPreferences.getString("yama_custom_theme_name_$slot") ?? "My theme ${slot + 1}";
+
+  Future<void> saveCustomTheme(int slot, String name) async {
+    await _sharedPreferences.setString("yama_custom_theme_$slot", exportAppearance());
+    await _sharedPreferences.setString("yama_custom_theme_name_$slot", name.trim().isEmpty ? "My theme ${slot + 1}" : name.trim());
+    notifyListeners();
+  }
+
+  Future<bool> applyCustomTheme(int slot) async {
+    final String? json = _sharedPreferences.getString("yama_custom_theme_$slot");
+    if (json == null) {
+      return false;
+    }
+    try {
+      return await importAppearance(json);
+    } on FormatException {
+      return false;
+    }
+  }
+
+  Future<void> deleteCustomTheme(int slot) async {
+    await _sharedPreferences.remove("yama_custom_theme_$slot");
+    await _sharedPreferences.remove("yama_custom_theme_name_$slot");
     notifyListeners();
   }
 

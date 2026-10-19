@@ -51,6 +51,8 @@ class WallpaperPanelPage extends StatelessWidget {
               WallpaperMode.image: localizations.picture,
             if (wallpaper.slideCount > 0 || s.wallpaperMode == WallpaperMode.slideshow)
               WallpaperMode.slideshow: "Slideshow (${wallpaper.slideCount})",
+            WallpaperMode.reddit: "Reddit wallpapers",
+            WallpaperMode.web: "Web image links",
           },
           onChanged: wallpaper.useMode,
         ),
@@ -82,8 +84,54 @@ class WallpaperPanelPage extends StatelessWidget {
             onChanged: (v) => wallpaper.setSolidColor(Color(v)),
           ),
 
-        if (wallpaper.slideCount > 0) ...[
-          const YamaSectionHeader("Slideshow"),
+        if (s.wallpaperMode == WallpaperMode.reddit) ...[
+          const YamaSectionHeader("Reddit"),
+          YamaNavButton(
+            icon: Icons.forum_outlined,
+            label: "Subreddits: ${s.redditSubreddits.isEmpty ? "none" : s.redditSubreddits}",
+            onPressed: () async {
+              final String? value = await yamaTextDialog(
+                context,
+                title: "Subreddits",
+                initial: s.redditSubreddits,
+                hint: "wallpaper, WidescreenWallpaper",
+                help: "Names separated by commas, without r/. Only wide pictures at least 1280 pixels across "
+                    "are used, and adult posts are skipped.",
+              );
+              if (value != null) {
+                await s.setValue(YamaKeys.redditSubreddits, value.trim());
+              }
+            },
+          ),
+          _remoteStatus(context, wallpaper, "Reddit"),
+        ],
+        if (s.wallpaperMode == WallpaperMode.web) ...[
+          const YamaSectionHeader("Web image links"),
+          YamaNavButton(
+            icon: Icons.link,
+            label: s.webImageUrls.isEmpty ? "Add image links" : "Image links (${s.webImageUrls.split(RegExp(r"[\s,;]+")).where((p) => p.isNotEmpty).length})",
+            onPressed: () async {
+              final String? value = await yamaTextDialog(
+                context,
+                title: "Image links",
+                initial: s.webImageUrls,
+                hint: "https://example.com/wallpaper.jpg",
+                help: "One or more links to pictures, separated by spaces or commas. With a single link, "
+                    "YaMa reloads it each time, so a tool that regenerates the same file "
+                    "(for example a TMDB wallpaper script) shows its newest picture.",
+              );
+              if (value != null) {
+                await s.setValue(YamaKeys.webImageUrls, value.trim());
+              }
+            },
+          ),
+          _remoteStatus(context, wallpaper, "the links"),
+        ],
+
+        if (wallpaper.slideCount > 0 ||
+            s.wallpaperMode == WallpaperMode.reddit ||
+            s.wallpaperMode == WallpaperMode.web) ...[
+          const YamaSectionHeader("Changing pictures"),
           YamaDropdown<int>(
             label: "Change picture every",
             icon: Icons.timer_outlined,
@@ -112,11 +160,12 @@ class WallpaperPanelPage extends StatelessWidget {
             label: "Next picture now (or press Play/Pause)",
             onPressed: wallpaper.nextWallpaper,
           ),
-          YamaNavButton(
-            icon: Icons.delete_outline,
-            label: "Remove all slideshow pictures",
-            onPressed: () => wallpaper.clearSlideshow(),
-          ),
+          if (wallpaper.slideCount > 0)
+            YamaNavButton(
+              icon: Icons.delete_outline,
+              label: "Remove all slideshow pictures",
+              onPressed: () => wallpaper.clearSlideshow(),
+            ),
         ],
 
         const YamaSectionHeader("Effects"),
@@ -168,6 +217,41 @@ class WallpaperPanelPage extends StatelessWidget {
           value: s.wallpaperShadow,
           items: {for (final v in const [0, 20, 35, 50, 65, 80]) v: percentLabel(v)},
           onChanged: (v) => s.setValue(YamaKeys.wallpaperShadow, v),
+        ),
+      ],
+    );
+  }
+
+  static Widget _remoteStatus(BuildContext context, WallpaperService wallpaper, String sourceName) {
+    final String text;
+    final IconData icon;
+    if (wallpaper.remoteLoading) {
+      text = "Loading pictures from $sourceName…";
+      icon = Icons.downloading;
+    } else if (wallpaper.remoteError != null) {
+      text = wallpaper.remoteError!;
+      icon = Icons.error_outline;
+    } else {
+      text = "${wallpaper.remoteCount} picture${wallpaper.remoteCount == 1 ? "" : "s"} ready";
+      icon = Icons.check_circle_outline;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: wallpaper.remoteError != null ? Colors.redAccent : Colors.white70),
+              const SizedBox(width: 8),
+              Expanded(child: Text(text, style: Theme.of(context).textTheme.bodySmall)),
+            ],
+          ),
+        ),
+        YamaNavButton(
+          icon: Icons.refresh,
+          label: "Reload pictures",
+          onPressed: wallpaper.reloadRemote,
         ),
       ],
     );

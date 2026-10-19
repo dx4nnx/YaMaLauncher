@@ -442,7 +442,7 @@ class _CategorySettingsState extends State<_CategorySettings>
                 value: _columnsCount,
                 isDense: true,
                 isExpanded: true,
-                items: [for (int i = 3; i <= 12; i++) i]
+                items: [for (int i = 1; i <= 12; i++) i]
                     .map(
                       (value) => DropdownMenuItem(
                     value: value,

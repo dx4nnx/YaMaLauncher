@@ -53,7 +53,7 @@ class _FocusAwareAppBarState extends State<FocusAwareAppBar>
         toolbarHeight: yamaBarHeight,
         actions: [
           IconButton(
-            padding: const EdgeInsets.all(2),
+            padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(),
             splashRadius: 20,
             icon: const Icon(Icons.settings_outlined,
@@ -62,8 +62,7 @@ class _FocusAwareAppBarState extends State<FocusAwareAppBar>
               ],
             ),
             onPressed: () => showDialog(context: context, builder: (_) => const SettingsPanel()),
-            // sometime after Flutter 3.7.5, no later than 3.16.8, the focus highlight went away
-            focusColor: Theme.of(context).primaryColorLight,
+            // Focus look comes from the app theme (filled accent + outline).
           ),
           const Padding(
             padding: EdgeInsets.only(left: 16),

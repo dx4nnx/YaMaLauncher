@@ -81,7 +81,17 @@ class YamaBackground extends StatelessWidget {
   Widget _gradient(WallpaperService wallpaper) =>
       DecoratedBox(decoration: BoxDecoration(gradient: wallpaper.gradient.gradient));
 
-  Widget _picture(ImageProvider image) => Image(
+  /// Decode pictures at screen size, not their full resolution (often 4K),
+  /// which is far faster and lighter on a TV stick.
+  Widget _picture(ImageProvider image) => LayoutBuilder(
+    builder: (context, constraints) {
+      final double ratio = MediaQuery.devicePixelRatioOf(context);
+      final double width = constraints.maxWidth.isFinite ? constraints.maxWidth : MediaQuery.sizeOf(context).width;
+      return _sizedPicture(ResizeImage.resizeIfNeeded((width * ratio).round(), null, image));
+    },
+  );
+
+  Widget _sizedPicture(ImageProvider image) => Image(
     image: image,
     fit: BoxFit.cover,
     width: double.infinity,
@@ -98,23 +108,30 @@ class YamaBackground extends StatelessWidget {
         final ImageProvider? image = wallpaper.wallpaper;
         return image == null ? _gradient(wallpaper) : _picture(image);
       case WallpaperMode.slideshow:
-        final ImageProvider? slide = wallpaper.currentSlide;
+      case WallpaperMode.reddit:
+      case WallpaperMode.web:
+        final ImageProvider? slide = wallpaper.currentImage;
         if (slide == null) {
           return _gradient(wallpaper);
         }
         final SlideEffect transition = _transitionFor(settings.slideshowTransition, wallpaper.slideCounter);
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 1400),
-          switchInCurve: Curves.easeInOut,
-          switchOutCurve: Curves.easeInOut,
-          layoutBuilder: (current, previous) => Stack(
-            fit: StackFit.expand,
-            children: [...previous, if (current != null) current],
-          ),
-          transitionBuilder: (child, animation) => _transition(transition, child, animation),
-          child: KeyedSubtree(
-            key: ValueKey(wallpaper.slideCounter),
-            child: _picture(slide),
+        return _ReadySwitcher(
+          image: slide,
+          counter: wallpaper.slideCounter,
+          placeholder: _gradient(wallpaper),
+          builder: (image, counter) => AnimatedSwitcher(
+            duration: const Duration(milliseconds: 1400),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            layoutBuilder: (current, previous) => Stack(
+              fit: StackFit.expand,
+              children: [...previous, if (current != null) current],
+            ),
+            transitionBuilder: (child, animation) => _transition(transition, child, animation),
+            child: KeyedSubtree(
+              key: ValueKey(counter),
+              child: _picture(image),
+            ),
           ),
         );
       case WallpaperMode.gradient:
@@ -188,3 +205,74 @@ class YamaBackground extends StatelessWidget {
     return ColorFiltered(colorFilter: ColorFilter.matrix(matrix), child: child);
   }
 }
+
+/// Shows the last picture that finished loading, and only switches to a new
+/// one once it's downloaded and decoded, so transitions never flash blank.
+class _ReadySwitcher extends StatefulWidget {
+  final ImageProvider image;
+  final int counter;
+  final Widget placeholder;
+  final Widget Function(ImageProvider image, int counter) builder;
+
+  const _ReadySwitcher({
+    required this.image,
+    required this.counter,
+    required this.placeholder,
+    required this.builder,
+  });
+
+  @override
+  State<_ReadySwitcher> createState() => _ReadySwitcherState();
+}
+
+class _ReadySwitcherState extends State<_ReadySwitcher> {
+  ImageProvider? _shown;
+  int _shownCounter = -1;
+  int _requested = -1;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ReadySwitcher oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.counter != widget.counter || oldWidget.image != widget.image) {
+      _load();
+    }
+  }
+
+  void _load() {
+    final int counter = widget.counter;
+    if (_requested == counter && _shown != null) {
+      return;
+    }
+    _requested = counter;
+    final ImageProvider target = widget.image;
+    final double ratio = MediaQuery.devicePixelRatioOf(context);
+    final double width = MediaQuery.sizeOf(context).width;
+    final ImageProvider sized = ResizeImage.resizeIfNeeded((width * ratio).round(), null, target);
+    bool failed = false;
+    precacheImage(sized, context, onError: (_, __) => failed = true).then((_) {
+      // A picture that fails to load is skipped; the previous one stays.
+      if (mounted && _requested == counter && !failed) {
+        setState(() {
+          _shown = target;
+          _shownCounter = counter;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ImageProvider? shown = _shown;
+    if (shown == null) {
+      return widget.placeholder;
+    }
+    return widget.builder(shown, _shownCounter);
+  }
+}
+

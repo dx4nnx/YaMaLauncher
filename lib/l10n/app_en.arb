@@ -84,7 +84,7 @@
     "showCategoryTitles": "Show category titles",
     "sort": "Sort",
     "systemSettings": "System settings",
-    "textAboutDialog": "YaMa Launcher is a glassy, open-source launcher for Android TV and Fire TV, built on FLauncher.\nSource code of the original FLauncher: {repoUrl}.\n\nFLauncher by Étienne Fesser and Oscar Rojas. Original logo by Katie (@fureturoe), design by @FXCostanzo. Fonts: Nunito, Quicksand, Comfortaa, Inter and Lexend (SIL Open Font License).",
+    "textAboutDialog": "YaMa Launcher is a glassy, open-source launcher for Android TV and Fire TV, built on FLauncher.\nSource code of the original FLauncher: {repoUrl}.\n\nFLauncher by Étienne Fesser and Oscar Rojas. Original logo by Katie (@fureturoe), design by @FXCostanzo. Fonts: Poppins, Nunito, Quicksand, Comfortaa, Inter and Lexend (SIL Open Font License).",
     "@textAboutDialog": {
         "placeholders": {
             "repoUrl": {

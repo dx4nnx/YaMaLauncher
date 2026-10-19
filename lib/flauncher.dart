@@ -18,6 +18,7 @@
 
 
 import 'package:flauncher/custom_traversal_policy.dart';
+import 'package:flauncher/models/yama_settings.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/launcher_state.dart';
 import 'package:flauncher/providers/settings_service.dart';
@@ -62,22 +63,50 @@ class FLauncher extends StatelessWidget {
             child: Scaffold(
               backgroundColor: Colors.transparent,
               appBar: FocusAwareAppBar(),
-              body: Consumer2<AppsService, SettingsService>(
-                builder: (context, appsService, settings, _) => Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    settings.marginLeft.toDouble(),
-                    16 + settings.marginTop.toDouble(),
-                    settings.marginRight.toDouble(),
-                    0
-                  ),
-                  child: appsService.initialized
-                      ? IdleFader(
-                          child: SingleChildScrollView(
-                            child: _sections(appsService.launcherSections, settings)
-                          )
-                        )
-                      : _emptyState(context)
-                )
+              body: Consumer<AppsService>(
+                builder: (context, appsService, _) {
+                  final layout = context.select<SettingsService, ({
+                    double left, double right, double edge, bool bottom, double spacing, bool hideEmpty
+                  })>((s) => (
+                    left: s.marginLeft.toDouble(),
+                    right: s.marginRight.toDouble(),
+                    edge: s.marginTop.toDouble(),
+                    bottom: s.appsPosition == AppsPosition.bottom,
+                    spacing: s.sectionSpacing.toDouble(),
+                    hideEmpty: s.hideEmptyCategories,
+                  ));
+
+                  if (!appsService.initialized) {
+                    return _emptyState(context);
+                  }
+
+                  final Widget sections = _sections(appsService.launcherSections, layout.spacing, layout.hideEmpty);
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      layout.left,
+                      layout.bottom ? 0 : 16 + layout.edge,
+                      layout.right,
+                      layout.bottom ? 16 + layout.edge : 0,
+                    ),
+                    child: IdleFader(
+                      child: layout.bottom
+                          // Apps sit at the bottom, leaving the top of the
+                          // screen to poster-style (TMDB) wallpapers.
+                          ? LayoutBuilder(
+                              builder: (context, constraints) => SingleChildScrollView(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [sections],
+                                  ),
+                                ),
+                              ),
+                            )
+                          : SingleChildScrollView(child: sections),
+                    ),
+                  );
+                }
               )
             )
           )
@@ -86,9 +115,9 @@ class FLauncher extends StatelessWidget {
     )
   );
 
-  Widget _sections(List<LauncherSection> sections, SettingsService settings) => Column(
+  Widget _sections(List<LauncherSection> sections, double sectionSpacing, bool hideEmpty) => Column(
     children: sections.where((section) =>
-        !(settings.hideEmptyCategories && section is Category && section.applications.isEmpty)
+        !(hideEmpty && section is Category && section.applications.isEmpty)
     ).map((section) {
       final Key sectionKey = Key(section.id.toString());
       final Widget categoryWidget;
@@ -114,7 +143,7 @@ class FLauncher extends StatelessWidget {
       }
 
       return Padding(
-        padding: EdgeInsets.symmetric(vertical: settings.sectionSpacing / 2),
+        padding: EdgeInsets.symmetric(vertical: sectionSpacing / 2),
         child: categoryWidget
       );
     }).toList(),

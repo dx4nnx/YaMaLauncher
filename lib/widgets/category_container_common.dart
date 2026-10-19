@@ -56,12 +56,14 @@ Widget categoryContainerEmptyState(BuildContext context) {
 
 /// Category title plus content, optionally inside YaMa's soft glass "dock".
 Widget yamaCategoryShell(BuildContext context, String title, Widget content) {
-  final SettingsService settings = context.watch<SettingsService>();
+  final shell = context.select<SettingsService, ({bool titles, bool dock, int opacity, bool blur})>(
+    (s) => (titles: s.showCategoryTitles, dock: s.dockEnabled, opacity: s.dockOpacity, blur: s.dockBlur),
+  );
 
   final Widget column = Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      if (settings.showCategoryTitles)
+      if (shell.titles)
         Padding(
           padding: const EdgeInsets.only(left: 20, bottom: 4),
           child: Text(
@@ -78,7 +80,7 @@ Widget yamaCategoryShell(BuildContext context, String title, Widget content) {
     ],
   );
 
-  if (!settings.dockEnabled) {
+  if (!shell.dock) {
     return column;
   }
 
@@ -87,13 +89,13 @@ Widget yamaCategoryShell(BuildContext context, String title, Widget content) {
     padding: const EdgeInsets.only(top: 14, bottom: 6),
     decoration: BoxDecoration(
       borderRadius: radius,
-      color: Colors.white.withOpacity((settings.dockOpacity / 100).clamp(0.0, 0.8).toDouble()),
+      color: Colors.white.withOpacity((shell.opacity / 100).clamp(0.0, 0.8).toDouble()),
       border: Border.all(color: Colors.white.withOpacity(0.10)),
     ),
     child: column,
   );
 
-  if (!settings.dockBlur) {
+  if (!shell.blur) {
     return panel;
   }
 

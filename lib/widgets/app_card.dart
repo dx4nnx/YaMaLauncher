@@ -90,8 +90,37 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final SettingsService settings = context.watch<SettingsService>();
-    final CardShape shape = settings.cardShape;
+    // Only the settings that change how a card looks. Selecting them (instead
+    // of watching every setting) keeps cards from redrawing on unrelated changes.
+    final look = context.select<SettingsService, ({
+      CardShape shape,
+      double radius,
+      LabelMode label,
+      FocusEffect effect,
+      int glowColor,
+      double glowSize,
+      GlowAnimation glowAnimation,
+      double zoom,
+      int iconColor,
+      int tintColor,
+      double tint,
+      double dim,
+    })>((s) => (
+      shape: s.cardShape,
+      radius: s.cornerRadius.toDouble(),
+      label: s.labelMode,
+      effect: s.focusEffect,
+      glowColor: s.glowColor,
+      glowSize: s.glowSize.toDouble(),
+      glowAnimation: s.appHighlightAnimationEnabled ? s.glowAnimation : GlowAnimation.still,
+      zoom: s.focusZoom,
+      iconColor: s.iconCardColor,
+      tintColor: s.focusTintColor,
+      tint: (s.focusTintStrength / 100).clamp(0.0, 1.0).toDouble(),
+      dim: (s.unfocusedDim / 100).clamp(0.0, 0.9).toDouble(),
+    ));
+
+    final CardShape shape = look.shape;
     final bool iconOnly = shape != CardShape.banner;
 
     if (iconOnly != _imageLoadedAsIcon) {
@@ -99,112 +128,101 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       _appImageLoadFuture = _loadAppBannerOrIcon(context.read<AppsService>(), iconOnly);
     }
 
-    final double radius = settings.cornerRadius.toDouble();
+    final double radius = look.radius;
     final ShapeBorder cardBorder = shape == CardShape.circle
         ? const CircleBorder()
         : RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius));
-    final LabelMode labelMode = settings.labelMode;
+    final LabelMode labelMode = look.label;
 
     return FocusKeyboardListener(
       onPressed: (key) => _onPressed(context, key),
       onLongPress: (key) => _onLongPress(context, key),
       builder: (context) {
         final bool shouldHighlight = _shouldHighlight(context);
+        final bool focusedStill = shouldHighlight && !_moving;
 
-        final FocusEffect effect = settings.focusEffect;
-        final bool showGlow = effect == FocusEffect.glow && shouldHighlight && !_moving;
-        final GlowAnimation glowAnimation =
-            settings.appHighlightAnimationEnabled ? settings.glowAnimation : GlowAnimation.still;
-        _driveGlow(showGlow ? glowAnimation : null);
+        final FocusEffect effect = look.effect;
+        final bool showGlow = effect == FocusEffect.glow && focusedStill;
+        _driveGlow(showGlow ? look.glowAnimation : null);
 
-        final Color glowColor = Color(settings.glowColor);
-        final double glowSize = settings.glowSize.toDouble();
+        final Color glowColor = Color(look.glowColor);
+        final Color ringColor = effect == FocusEffect.glow ? glowColor : Colors.white;
+        final double glowSize = look.glowSize;
         final bool circle = shape == CardShape.circle;
         final BorderRadius? boxRadius = circle ? null : BorderRadius.circular(radius);
-        final double tintStrength = (settings.focusTintStrength / 100).clamp(0.0, 1.0).toDouble();
+        final double tintStrength = look.tint;
 
         final Widget card = AspectRatio(
           aspectRatio: cardAspectRatio(shape),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
             transformAlignment: Alignment.center,
-            transform: _scaleTransform(context, settings.focusZoom),
+            transform: _scaleTransform(context, look.zoom),
             child: Stack(
               fit: StackFit.expand,
               clipBehavior: Clip.none,
               children: [
-                if (showGlow)
-                  IgnorePointer(
-                    child: AnimatedBuilder(
-                      animation: _animation,
-                      builder: (context, _) => DecoratedBox(
-                        decoration: BoxDecoration(
-                          shape: circle ? BoxShape.circle : BoxShape.rectangle,
-                          borderRadius: boxRadius,
-                          boxShadow: [_glowShadow(glowAnimation, glowColor, glowSize, _animation.value)],
+                if (showGlow) _glowLayer(look.glowAnimation, glowColor, glowSize, circle, boxRadius),
+                RepaintBoundary(
+                  child: Material(
+                    shape: cardBorder,
+                    clipBehavior: Clip.antiAlias,
+                    color: shape == CardShape.banner ? null : Color(look.iconColor),
+                    elevation: effect == FocusEffect.shadow && shouldHighlight ? 16 : 0,
+                    shadowColor: Colors.black,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        InkWell(
+                          autofocus: widget.autofocus,
+                          focusColor: Colors.transparent,
+                          customBorder: cardBorder,
+                          child: _appImage(shape),
+                          onTap: () => _onPressed(context, LogicalKeyboardKey.enter),
+                          onLongPress: () => _onLongPress(context, LogicalKeyboardKey.enter),
+                          onFocusChange: (focused) {
+                            Scrollable.ensureVisible(
+                              context,
+                              // This specific alignment value is not only
+                              // to center the focused card in the row while
+                              // scrolling, but to prevent the topmost category
+                              // title to be hidden by the content above it when
+                              // scrolling from the app bar. How it relates to this,
+                              // I don't know
+                              alignment: 0.5,
+                              curve: Curves.easeInOut,
+                              duration: Duration(milliseconds: 100)
+                            );
+                          },
                         ),
-                      ),
+                        if (_moving) ..._arrows(),
+                        if (!shouldHighlight && look.dim > 0)
+                          IgnorePointer(child: ColoredBox(color: Colors.black.withOpacity(look.dim))),
+                        if (shouldHighlight && tintStrength > 0)
+                          IgnorePointer(child: ColoredBox(color: Color(look.tintColor).withOpacity(tintStrength))),
+                      ],
                     ),
                   ),
-                Material(
-                  shape: cardBorder,
-                  clipBehavior: Clip.antiAlias,
-                  color: shape == CardShape.banner ? null : Color(settings.iconCardColor),
-                  elevation: effect == FocusEffect.shadow && shouldHighlight ? 16 : 0,
-                  shadowColor: Colors.black,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      InkWell(
-                        autofocus: widget.autofocus,
-                        focusColor: Colors.transparent,
-                        customBorder: cardBorder,
-                        child: _appImage(shape),
-                        onTap: () => _onPressed(context, LogicalKeyboardKey.enter),
-                        onLongPress: () => _onLongPress(context, LogicalKeyboardKey.enter),
-                        onFocusChange: (focused) {
-                          Scrollable.ensureVisible(
-                            context,
-                            // This specific alignment value is not only
-                            // to center the focused card in the row while
-                            // scrolling, but to prevent the topmost category
-                            // title to be hidden by the content above it when
-                            // scrolling from the app bar. How it relates to this,
-                            // I don't know
-                            alignment: 0.5,
-                            curve: Curves.easeInOut,
-                            duration: Duration(milliseconds: 100)
-                          );
-                        },
-                      ),
-                      if (_moving) ..._arrows(),
-                      IgnorePointer(
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          opacity: shouldHighlight ? 0 : (settings.unfocusedDim / 100).clamp(0.0, 0.9).toDouble(),
-                          child: Container(color: Colors.black),
-                        ),
-                      ),
-                      if (tintStrength > 0)
-                        IgnorePointer(
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 200),
-                            opacity: shouldHighlight ? tintStrength : 0,
-                            child: Container(color: Color(settings.focusTintColor)),
-                          ),
-                        ),
-                    ],
-                  ),
                 ),
-                if (showGlow)
+                // Solid ring on the selected card, so it's always obvious.
+                if (focusedStill && effect != FocusEffect.none)
                   IgnorePointer(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         shape: circle ? BoxShape.circle : BoxShape.rectangle,
                         borderRadius: boxRadius,
-                        border: Border.all(color: glowColor.withOpacity(0.9), width: 2),
+                        border: Border.all(color: ringColor, width: 3.5),
+                      ),
+                    ),
+                  ),
+                if (focusedStill && effect == FocusEffect.none)
+                  IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: circle ? BoxShape.circle : BoxShape.rectangle,
+                        borderRadius: boxRadius,
+                        border: Border.all(color: Colors.white, width: 3),
                       ),
                     ),
                   ),
@@ -217,33 +235,72 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           return card;
         }
 
+        final bool showLabel = labelMode == LabelMode.always || shouldHighlight;
         return Column(
           mainAxisSize: MainAxisSize.max,
           children: [
             Expanded(child: Center(child: card)),
             SizedBox(
               height: appLabelHeight,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: labelMode == LabelMode.always || shouldHighlight ? 1 : 0,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    widget.application.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                      shadows: [const Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 6)]
-                    ),
-                  ),
-                ),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: showLabel
+                    ? Text(
+                        widget.application.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          fontWeight: shouldHighlight ? FontWeight.w600 : FontWeight.w400,
+                          color: shouldHighlight ? Colors.white : Colors.white70,
+                          shadows: [const Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 6)],
+                        ),
+                      )
+                    : const SizedBox.shrink(),
               ),
             ),
           ],
         );
       },
     );
+  }
+
+  /// The glow is drawn once and cached (RepaintBoundary); breathe and pulse
+  /// only fade it in and out, which is cheap. Shimmer recolors every frame.
+  Widget _glowLayer(GlowAnimation animation, Color color, double size, bool circle, BorderRadius? radius) {
+    Widget shadow(Color c) => DecoratedBox(
+      decoration: BoxDecoration(
+        shape: circle ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: radius,
+        boxShadow: [BoxShadow(color: c.withOpacity(0.85), blurRadius: size, spreadRadius: size * 0.3)],
+      ),
+    );
+
+    switch (animation) {
+      case GlowAnimation.still:
+        return IgnorePointer(child: RepaintBoundary(child: shadow(color)));
+      case GlowAnimation.breathe:
+      case GlowAnimation.pulse:
+        return IgnorePointer(
+          child: FadeTransition(
+            opacity: Tween<double>(begin: 0.35, end: 1.0).animate(_animation),
+            child: RepaintBoundary(child: shadow(color)),
+          ),
+        );
+      case GlowAnimation.shimmer:
+        return IgnorePointer(
+          child: AnimatedBuilder(
+            animation: _animation,
+            builder: (context, _) {
+              final HSVColor hsv = HSVColor.fromColor(color);
+              final HSVColor shifted = hsv
+                  .withHue((hsv.hue + 360 * _animation.value) % 360)
+                  .withSaturation(hsv.saturation < 0.35 ? 0.35 : hsv.saturation);
+              return shadow(shifted.toColor());
+            },
+          ),
+        );
+    }
   }
 
   /// Starts or stops the glow animation to match [animation] (null = off).
@@ -270,27 +327,6 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       case GlowAnimation.still:
         _animation.duration = const Duration(milliseconds: 1800);
         _animation.repeat(reverse: true);
-    }
-  }
-
-  static BoxShadow _glowShadow(GlowAnimation animation, Color color, double size, double t) {
-    switch (animation) {
-      case GlowAnimation.still:
-        return BoxShadow(color: color.withOpacity(0.8), blurRadius: size, spreadRadius: size * 0.25);
-      case GlowAnimation.breathe:
-      case GlowAnimation.pulse:
-        final double strength = 0.55 + 0.45 * t;
-        return BoxShadow(
-          color: color.withOpacity(0.35 + 0.55 * t),
-          blurRadius: size * strength,
-          spreadRadius: size * 0.3 * strength,
-        );
-      case GlowAnimation.shimmer:
-        final HSVColor hsv = HSVColor.fromColor(color);
-        final HSVColor shifted = hsv
-            .withHue((hsv.hue + 360 * t) % 360)
-            .withSaturation(hsv.saturation < 0.35 ? 0.35 : hsv.saturation);
-        return BoxShadow(color: shifted.toColor().withOpacity(0.85), blurRadius: size, spreadRadius: size * 0.25);
     }
   }
 

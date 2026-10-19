@@ -36,11 +36,32 @@ class LayoutPanelPage extends StatelessWidget {
     return YamaSettingsPage(
       title: "Layout & cards",
       children: [
+        const YamaSectionHeader("Position & size"),
+        YamaDropdown<AppsPosition>(
+          label: "Where the apps sit",
+          icon: Icons.vertical_split_outlined,
+          autofocus: true,
+          value: s.appsPosition,
+          items: const {
+            AppsPosition.top: "Top of the screen",
+            AppsPosition.bottom: "Bottom (for poster wallpapers)",
+          },
+          onChanged: (v) => s.setValue(YamaKeys.appsPosition, v),
+        ),
+        YamaDropdown<int>(
+          label: "Apps across the screen",
+          icon: Icons.view_week_outlined,
+          value: s.cardsAcross,
+          items: const {
+            0: "Set per category", 2: "2 (huge)", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "8",
+          },
+          onChanged: (v) => s.setValue(YamaKeys.cardsAcross, v),
+        ),
+
         const YamaSectionHeader("Cards"),
         YamaDropdown<CardShape>(
           label: l.cardShape,
           icon: Icons.crop_square,
-          autofocus: true,
           value: s.cardShape,
           items: {
             CardShape.banner: l.cardShapeBanner,
@@ -125,7 +146,7 @@ class LayoutPanelPage extends StatelessWidget {
           onChanged: (v) => s.setValue(YamaKeys.marginRight, v),
         ),
         YamaDropdown<int>(
-          label: "Top margin",
+          label: "Space from the top (or bottom) edge",
           icon: Icons.vertical_align_top,
           value: s.marginTop,
           items: {for (final v in const [0, 16, 32, 64, 96, 128, 192, 256]) v: v == 0 ? l.off : "$v"},

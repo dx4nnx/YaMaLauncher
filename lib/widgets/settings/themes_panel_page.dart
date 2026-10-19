@@ -38,10 +38,48 @@ class ThemesPanelPage extends StatelessWidget {
     return YamaSettingsPage(
       title: "Themes & idle",
       children: [
+        const YamaSectionHeader("Your saved themes"),
+        for (int slot = 0; slot < SettingsService.customThemeSlots; slot++) ...[
+          if (s.hasCustomTheme(slot))
+            YamaNavButton(
+              autofocus: slot == 0,
+              icon: Icons.palette,
+              label: "Apply “${s.customThemeName(slot)}”",
+              onPressed: () async {
+                final bool ok = await s.applyCustomTheme(slot);
+                if (context.mounted) _toast(context, ok ? "Applied “${s.customThemeName(slot)}”" : "That theme couldn't be loaded", error: !ok);
+              },
+            ),
+          YamaNavButton(
+            autofocus: slot == 0 && !s.hasCustomTheme(0),
+            icon: s.hasCustomTheme(slot) ? Icons.save_as_outlined : Icons.add_circle_outline,
+            label: s.hasCustomTheme(slot)
+                ? "Replace “${s.customThemeName(slot)}” with current look"
+                : "Save current look as theme ${slot + 1}",
+            onPressed: () async {
+              final String? name = await yamaTextDialog(
+                context,
+                title: "Name this theme",
+                initial: s.hasCustomTheme(slot) ? s.customThemeName(slot) : "My theme ${slot + 1}",
+              );
+              if (name == null) return;
+              await s.saveCustomTheme(slot, name);
+              if (context.mounted) _toast(context, "Saved “${s.customThemeName(slot)}”");
+            },
+          ),
+          if (s.hasCustomTheme(slot))
+            YamaNavButton(
+              icon: Icons.delete_outline,
+              label: "Delete “${s.customThemeName(slot)}”",
+              onPressed: () async {
+                await s.deleteCustomTheme(slot);
+              },
+            ),
+        ],
+
         const YamaSectionHeader("Built-in looks"),
         for (final entry in yamaPresets.entries)
           YamaNavButton(
-            autofocus: entry.key == yamaPresets.keys.first,
             icon: Icons.style_outlined,
             label: entry.key,
             onPressed: () async {

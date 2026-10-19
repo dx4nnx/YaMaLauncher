@@ -48,41 +48,65 @@ class CategoryRow extends StatelessWidget
       categoryContent = categoryContainerEmptyState(context);
     }
     else {
-      final SettingsService settings = context.watch<SettingsService>();
-      final CardShape shape = settings.cardShape;
-      final double cardHeight = (category.rowHeight - 16).toDouble();
-      final double cardWidth = cardHeight * cardAspectRatio(shape);
-      final double labelHeight = settings.labelMode == LabelMode.never ? 0 : appLabelHeight;
-      final double zoomOverflow = cardHeight * (settings.focusZoom - 1) / 2;
-      final double glowSpace = settings.focusEffect == FocusEffect.glow ? settings.glowSize.toDouble() : 0;
-      final double verticalPadding = max(8.0, zoomOverflow + 4 + glowSpace);
-      final double horizontalPadding = max(8.0, cardWidth * (settings.focusZoom - 1) / 2 + glowSpace);
-      final double gap = settings.cardSpacing.toDouble();
+      final look = context.select<SettingsService, ({
+        CardShape shape, bool label, double zoom, double glow, double gap, int across
+      })>((s) => (
+        shape: s.cardShape,
+        label: s.labelMode != LabelMode.never,
+        zoom: s.focusZoom,
+        glow: s.focusEffect == FocusEffect.glow ? s.glowSize.toDouble() : 0.0,
+        gap: s.cardSpacing.toDouble(),
+        across: s.cardsAcross,
+      ));
 
-      categoryContent = SizedBox(
-        height: cardHeight + labelHeight + verticalPadding * 2,
-        child: ListView.custom(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
-          scrollDirection: Axis.horizontal,
-          childrenDelegate: SliverChildBuilderDelegate(
-            childCount: applications.length,
-            findChildIndexCallback: _findChildIndex,
-            (context, index) => Padding(
-                key: Key(applications[index].packageName),
-                padding: EdgeInsets.symmetric(horizontal: gap / 2),
-                child: SizedBox(
-                  width: cardWidth,
-                  child: AppCard(
-                    category: category,
-                    application: applications[index],
-                    autofocus: index == 0,
-                    onMove: (direction) => _onMove(context, direction, index),
-                    onMoveEnd: () => _onMoveEnd(context)
+      categoryContent = LayoutBuilder(
+        builder: (context, constraints) {
+          final double ratio = cardAspectRatio(look.shape);
+          final double labelHeight = look.label ? appLabelHeight : 0;
+
+          // Card size: either from the category's row height, or chosen so
+          // exactly "apps across the screen" cards fit the width.
+          double cardWidth;
+          double cardHeight;
+          if (look.across > 0 && constraints.maxWidth.isFinite) {
+            final int n = look.across;
+            cardWidth = (constraints.maxWidth - 2 * look.glow - 16 - look.gap * (n - 1)) / (n + look.zoom - 1);
+            cardWidth = max(40.0, cardWidth);
+            cardHeight = cardWidth / ratio;
+          } else {
+            cardHeight = (category.rowHeight - 16).toDouble();
+            cardWidth = cardHeight * ratio;
+          }
+
+          final double verticalPadding = max(8.0, cardHeight * (look.zoom - 1) / 2 + 4 + look.glow);
+          final double horizontalPadding = max(8.0, cardWidth * (look.zoom - 1) / 2 + look.glow);
+
+          return SizedBox(
+            height: cardHeight + labelHeight + verticalPadding * 2,
+            child: ListView.custom(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
+              scrollDirection: Axis.horizontal,
+              childrenDelegate: SliverChildBuilderDelegate(
+                childCount: applications.length,
+                findChildIndexCallback: _findChildIndex,
+                (context, index) => Padding(
+                  key: Key(applications[index].packageName),
+                  padding: EdgeInsets.symmetric(horizontal: look.gap / 2),
+                  child: SizedBox(
+                    width: cardWidth,
+                    child: AppCard(
+                      category: category,
+                      application: applications[index],
+                      autofocus: index == 0,
+                      onMove: (direction) => _onMove(context, direction, index),
+                      onMoveEnd: () => _onMoveEnd(context)
+                    )
                   )
                 )
+              )
             )
-          )
-        )
+          );
+        }
       );
     }
 

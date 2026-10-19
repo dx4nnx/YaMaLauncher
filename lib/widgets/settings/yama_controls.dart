@@ -92,8 +92,7 @@ class YamaDropdown<T> extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+  Widget build(BuildContext context) => FocusHighlight(
     child: Row(
       children: [
         Icon(icon, size: 22),
@@ -107,6 +106,7 @@ class YamaDropdown<T> extends StatelessWidget {
                 autofocus: autofocus,
                 isDense: true,
                 isExpanded: true,
+                focusColor: Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
                 value: _safeValue,
                 items: items.entries
@@ -127,6 +127,41 @@ class YamaDropdown<T> extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Fills its area with the accent color while anything inside has focus.
+class FocusHighlight extends StatefulWidget {
+  final Widget child;
+
+  const FocusHighlight({super.key, required this.child});
+
+  @override
+  State<FocusHighlight> createState() => _FocusHighlightState();
+}
+
+class _FocusHighlightState extends State<FocusHighlight> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color accent = Theme.of(context).colorScheme.primary;
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (focused) => setState(() => _focused = focused),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: _focused ? accent.withOpacity(0.32) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _focused ? accent : Colors.transparent, width: 2),
+        ),
+        child: widget.child,
+      ),
+    );
+  }
 }
 
 class YamaSwitch extends StatelessWidget {
@@ -272,3 +307,40 @@ class YamaNavButton extends StatelessWidget {
 }
 
 String percentLabel(int value, {String zero = "Off"}) => value == 0 ? zero : "$value%";
+
+/// Asks for a line of text with the on-screen keyboard. Returns null on cancel.
+Future<String?> yamaTextDialog(
+  BuildContext context, {
+  required String title,
+  required String initial,
+  String? hint,
+  String? help,
+}) {
+  final TextEditingController controller = TextEditingController(text: initial);
+  return showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(hintText: hint),
+            onSubmitted: (value) => Navigator.of(context).pop(value),
+          ),
+          if (help != null) ...[
+            const SizedBox(height: 10),
+            Text(help, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Cancel")),
+        TextButton(onPressed: () => Navigator.of(context).pop(controller.text), child: const Text("Save")),
+      ],
+    ),
+  );
+}
