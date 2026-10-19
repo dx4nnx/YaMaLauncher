@@ -45,6 +45,7 @@ abstract class YamaKeys {
   static const marginLeft = "margin_left";
   static const marginRight = "margin_right";
   static const marginTop = "margin_top";
+  static const marginBottom = "margin_bottom";
   static const dockEnabled = "dock_enabled";
   static const dockOpacity = "dock_opacity";
   static const dockBlur = "dock_blur";
@@ -106,7 +107,8 @@ const Map<String, Object> appearanceDefaults = {
   YamaKeys.sectionSpacing: 16,
   YamaKeys.marginLeft: 32,
   YamaKeys.marginRight: 32,
-  YamaKeys.marginTop: 0,
+  YamaKeys.marginTop: 16,
+  YamaKeys.marginBottom: 16,
   YamaKeys.dockEnabled: true,
   YamaKeys.dockOpacity: 10,
   YamaKeys.dockBlur: false,

@@ -48,7 +48,7 @@ class AppsGrid extends StatelessWidget
       categoryContent = categoryContainerEmptyState(context);
     }
     else {
-      final look = context.select<SettingsService, ({CardShape shape, bool label, double glow, double gap, int across, int maxRows})>(
+      final look = context.select<SettingsService, ({CardShape shape, bool label, double glow, double gap, int across, int maxRows, double rowGap})>(
         (s) => (
           shape: s.cardShape,
           label: s.labelMode != LabelMode.never,
@@ -56,6 +56,7 @@ class AppsGrid extends StatelessWidget
           gap: s.cardSpacing.toDouble(),
           across: s.cardsAcross,
           maxRows: s.maxVisibleRows,
+          rowGap: s.sectionSpacing.toDouble(),
         ),
       );
       categoryContent = LayoutBuilder(
@@ -64,7 +65,8 @@ class AppsGrid extends StatelessWidget
           final double padding = 16.0 + look.glow;
           final double cellWidth = max(1.0, (constraints.maxWidth - padding * 2 - look.gap * (columns - 1)) / columns);
           final double cellHeight = cellWidth / cardAspectRatio(look.shape) + (look.label ? appLabelHeight : 0);
-          final double rowGap = max(look.gap, 16.0 + look.glow);
+          // Same setting as the space between categories, so it can go down to 0.
+          final double rowGap = look.rowGap + look.glow;
           final int totalRows = (applications.length / columns).ceil();
           final bool limited = look.maxRows > 0 && totalRows > look.maxRows;
 

@@ -66,11 +66,12 @@ class FLauncher extends StatelessWidget {
               body: Consumer<AppsService>(
                 builder: (context, appsService, _) {
                   final layout = context.select<SettingsService, ({
-                    double left, double right, double edge, bool bottom, double spacing, bool hideEmpty
+                    double left, double right, double top, double bottomGap, bool bottom, double spacing, bool hideEmpty
                   })>((s) => (
                     left: s.marginLeft.toDouble(),
                     right: s.marginRight.toDouble(),
-                    edge: s.marginTop.toDouble(),
+                    top: s.marginTop.toDouble(),
+                    bottomGap: s.marginBottom.toDouble(),
                     bottom: s.appsPosition == AppsPosition.bottom,
                     spacing: s.sectionSpacing.toDouble(),
                     hideEmpty: s.hideEmptyCategories,
@@ -82,12 +83,7 @@ class FLauncher extends StatelessWidget {
 
                   final Widget sections = _sections(appsService.launcherSections, layout.spacing, layout.hideEmpty);
                   return Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      layout.left,
-                      layout.bottom ? 0 : 16 + layout.edge,
-                      layout.right,
-                      layout.bottom ? 16 + layout.edge : 0,
-                    ),
+                    padding: EdgeInsets.fromLTRB(layout.left, layout.top, layout.right, layout.bottomGap),
                     child: IdleFader(
                       child: layout.bottom
                           // Apps sit at the bottom, leaving the top of the

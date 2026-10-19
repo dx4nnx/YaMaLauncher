@@ -140,10 +140,10 @@ class LayoutPanelPage extends StatelessWidget {
           onChanged: s.setCardSpacing,
         ),
         YamaDropdown<int>(
-          label: l.sectionSpacing,
+          label: "Space between rows",
           icon: Icons.table_rows_outlined,
           value: s.sectionSpacing,
-          items: {for (final v in const [0, 8, 16, 24, 32, 48]) v: "$v"},
+          items: {for (final v in const [0, 4, 8, 12, 16, 24, 32, 48]) v: "$v"},
           onChanged: s.setSectionSpacing,
         ),
         YamaDropdown<int>(
@@ -161,11 +161,18 @@ class LayoutPanelPage extends StatelessWidget {
           onChanged: (v) => s.setValue(YamaKeys.marginRight, v),
         ),
         YamaDropdown<int>(
-          label: "Space from the top (or bottom) edge",
+          label: "Top margin",
           icon: Icons.vertical_align_top,
           value: s.marginTop,
-          items: {for (final v in const [0, 16, 32, 64, 96, 128, 192, 256]) v: v == 0 ? l.off : "$v"},
+          items: _edges,
           onChanged: (v) => s.setValue(YamaKeys.marginTop, v),
+        ),
+        YamaDropdown<int>(
+          label: "Bottom margin",
+          icon: Icons.vertical_align_bottom,
+          value: s.marginBottom,
+          items: _edges,
+          onChanged: (v) => s.setValue(YamaKeys.marginBottom, v),
         ),
 
         const YamaSectionHeader("Categories"),
@@ -210,6 +217,10 @@ class LayoutPanelPage extends StatelessWidget {
       ],
     );
   }
+
+  static const Map<int, String> _edges = {
+    0: "0", 8: "8", 16: "16", 24: "24", 32: "32", 48: "48", 64: "64", 96: "96", 128: "128", 192: "192", 256: "256",
+  };
 
   static const Map<int, String> _margins = {
     0: "0", 16: "16", 32: "32", 48: "48", 64: "64", 96: "96", 128: "128", 192: "192",

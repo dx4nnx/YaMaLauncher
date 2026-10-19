@@ -88,6 +88,7 @@ class SettingsService extends ChangeNotifier {
   int get marginLeft => _int(YamaKeys.marginLeft);
   int get marginRight => _int(YamaKeys.marginRight);
   int get marginTop => _int(YamaKeys.marginTop);
+  int get marginBottom => _int(YamaKeys.marginBottom);
   bool get dockEnabled => _bool(YamaKeys.dockEnabled);
   int get dockOpacity => _int(YamaKeys.dockOpacity);
   bool get dockBlur => _bool(YamaKeys.dockBlur);
