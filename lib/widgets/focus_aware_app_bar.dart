@@ -4,10 +4,11 @@ import 'package:provider/provider.dart';
 
 import '../providers/settings_service.dart';
 
-/// Taller than Material's default so a big or two-line clock fits.
-const double yamaBarHeight = 80;
 import 'date_time_widget.dart';
 import 'network_widget.dart';
+
+/// Taller than Material's default so a big or two-line clock fits.
+const double yamaBarHeight = 80;
 
 class FocusAwareAppBar extends StatefulWidget implements PreferredSizeWidget
 {
