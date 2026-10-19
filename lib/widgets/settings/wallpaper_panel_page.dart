@@ -22,6 +22,7 @@ import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
 import 'package:flauncher/widgets/settings/yama_controls.dart';
+import 'package:flauncher/widgets/yama_file_browser.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -64,11 +65,26 @@ class WallpaperPanelPage extends StatelessWidget {
         YamaNavButton(
           icon: Icons.image_outlined,
           label: "Choose a picture",
-          onPressed: () => _guard(context, () => wallpaper.pickWallpaper()),
+          onPressed: () async {
+            final String? path = await showYamaFileBrowser(context, title: "Choose a wallpaper");
+            if (path != null) await wallpaper.setWallpaperFromFile(path);
+          },
+        ),
+        YamaNavButton(
+          icon: Icons.drive_folder_upload_outlined,
+          label: "Add a folder to the slideshow",
+          onPressed: () async {
+            final String? folder = await showYamaFileBrowser(context, title: "Choose a folder of pictures", mode: BrowseMode.folder);
+            if (folder == null) return;
+            final int added = await wallpaper.addSlideshowFolder(folder);
+            if (context.mounted) {
+              _toast(context, "Added $added picture${added == 1 ? "" : "s"} to the slideshow");
+            }
+          },
         ),
         YamaNavButton(
           icon: Icons.collections_outlined,
-          label: "Add pictures to slideshow",
+          label: "Add pictures with another app",
           onPressed: () => _guard(context, () async {
             final int added = await wallpaper.addSlideshowPictures();
             if (added > 0 && context.mounted) {

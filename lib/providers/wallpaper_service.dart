@@ -494,6 +494,38 @@ class WallpaperService extends ChangeNotifier {
     }
   }
 
+  /// Sets the single wallpaper picture from a file chosen in YaMa's browser.
+  Future<void> setWallpaperFromFile(String path) async {
+    final Uint8List bytes = await File(path).readAsBytes();
+    await _wallpaperFile!.writeAsBytes(bytes, flush: true);
+    _wallpaper = MemoryImage(bytes);
+    await _settingsService.setValue(YamaKeys.wallpaperMode, WallpaperMode.image);
+    notifyListeners();
+  }
+
+  /// Copies every picture in a folder into the slideshow.
+  Future<int> addSlideshowFolder(String folderPath) async {
+    final Directory target = _slideshowDirectory!;
+    if (!await target.exists()) {
+      await target.create(recursive: true);
+    }
+    final List<File> pictures = Directory(folderPath)
+        .listSync()
+        .whereType<File>()
+        .where((f) => RegExp(r"\.(jpe?g|png|webp|gif)$", caseSensitive: false).hasMatch(f.path))
+        .toList();
+    final int stamp = DateTime.now().millisecondsSinceEpoch;
+    for (int i = 0; i < pictures.length; i++) {
+      await pictures[i].copy("${target.path}/slide_${stamp}_$i");
+    }
+    await _loadSlides();
+    _slideCounter++;
+    await _settingsService.setValue(YamaKeys.wallpaperMode, WallpaperMode.slideshow);
+    _onSettingsChanged();
+    notifyListeners();
+    return pictures.length;
+  }
+
   /// Adds pictures to the slideshow and switches to slideshow mode.
   Future<int> addSlideshowPictures() async {
     await _ensureFileExplorer();

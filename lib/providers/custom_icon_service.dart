@@ -118,6 +118,16 @@ class CustomIconService extends ChangeNotifier {
     return true;
   }
 
+  /// Uses a picture chosen in YaMa's own file browser.
+  Future<void> setIconFromFile(String packageName, String path) async {
+    final String lower = path.toLowerCase();
+    final String extension = _extensions.firstWhere((e) => lower.endsWith(".$e"), orElse: () => "png");
+    final Uint8List bytes = await File(path).readAsBytes();
+    await _removeFiles(packageName);
+    await File("${_folder!.path}/$packageName.$extension").writeAsBytes(bytes, flush: true);
+    await reload();
+  }
+
   Future<void> resetIcon(String packageName) async {
     await _removeFiles(packageName);
     await reload();

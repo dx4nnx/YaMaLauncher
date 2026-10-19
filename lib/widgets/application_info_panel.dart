@@ -21,6 +21,7 @@ import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/custom_icon_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
+import 'package:flauncher/widgets/yama_file_browser.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -150,6 +151,23 @@ class ApplicationInfoPanel extends StatelessWidget
                          const Icon(Icons.image_outlined),
                          Container(width: 8),
                          Text("Change icon", style: Theme.of(context).textTheme.bodyMedium),
+                       ],
+                     ),
+                     onPressed: () async {
+                       final String? path = await showYamaFileBrowser(context, title: "Choose an icon for ${application.name}");
+                       if (path == null || !context.mounted) return;
+                       await context.read<CustomIconService>().setIconFromFile(application.packageName, path);
+                       if (context.mounted) {
+                         Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+                       }
+                     },
+                   ),
+                   TextButton(
+                     child: Row(
+                       children: [
+                         const Icon(Icons.apps_outlined),
+                         Container(width: 8),
+                         Flexible(child: Text("Change icon with another app", style: Theme.of(context).textTheme.bodyMedium)),
                        ],
                      ),
                      onPressed: () async {
