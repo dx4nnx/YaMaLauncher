@@ -39,6 +39,13 @@ class WallpaperService extends ChangeNotifier {
   File? _wallpaperFile;
   Directory? _slideshowDirectory;
 
+  /// Folder in YaMa's own storage that ADB (or a file manager) can copy
+  /// pictures into; they join the slideshow. No permission needed.
+  Directory? _deviceFolder;
+
+  /// Full path of [_deviceFolder], shown on the settings page.
+  String? get deviceFolderPath => _deviceFolder?.path;
+
   ImageProvider? _wallpaper;
 
   List<File> _slides = [];
@@ -119,6 +126,15 @@ class WallpaperService extends ChangeNotifier {
     final directory = await getApplicationDocumentsDirectory();
     _wallpaperFile = File("${directory.path}/wallpaper");
     _slideshowDirectory = Directory("${directory.path}/slideshow");
+    try {
+      final Directory? external = await getExternalStorageDirectory();
+      if (external != null) {
+        _deviceFolder = Directory("${external.path}/wallpapers");
+        await _deviceFolder!.create(recursive: true);
+      }
+    } catch (_) {
+      _deviceFolder = null;
+    }
 
     if (await _wallpaperFile!.exists()) {
       _wallpaper = FileImage(_wallpaperFile!);
@@ -165,15 +181,26 @@ class WallpaperService extends ChangeNotifier {
   }
 
   Future<void> _loadSlides() async {
-    final Directory? directory = _slideshowDirectory;
-    if (directory == null || !await directory.exists()) {
-      _slides = [];
+    final List<File> files = [];
+    for (final Directory? directory in [_slideshowDirectory, _deviceFolder]) {
+      if (directory != null && await directory.exists()) {
+        files.addAll(directory
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((file) => directory == _slideshowDirectory ||
+                RegExp(r"\.(jpe?g|png|webp|gif)$", caseSensitive: false).hasMatch(file.path)));
+      }
     }
-    else {
-      _slides = directory.listSync().whereType<File>().toList()
-        ..sort((a, b) => a.path.compareTo(b.path));
-    }
+    _slides = files..sort((a, b) => a.path.compareTo(b.path));
     _shuffle();
+  }
+
+  /// Re-reads the slideshow folders (after copying new pictures with ADB).
+  Future<void> reloadSlides() async {
+    await _loadSlides();
+    _slideCounter++;
+    _onSettingsChanged();
+    notifyListeners();
   }
 
   /// A fresh random order, so pictures don't repeat until all were shown.
@@ -213,6 +240,13 @@ class WallpaperService extends ChangeNotifier {
           _remotePosition = 0;
         }
       case WallpaperMode.web:
+        // Folder links are re-read every hour so newly generated pictures appear.
+        final DateTime? fetchedWeb = _remoteFetchedAt;
+        if (fetchedWeb != null && DateTime.now().difference(fetchedWeb) > const Duration(hours: 1) &&
+            _splitList(_settingsService.webImageUrls).any((url) => url.endsWith("/"))) {
+          _remoteSource = "";
+          _ensureRemote(WallpaperMode.web);
+        }
         if (_remote.isEmpty) {
           return;
         }
@@ -237,12 +271,19 @@ class WallpaperService extends ChangeNotifier {
           .where((url) => url.startsWith("http://") || url.startsWith("https://"))
           .toList();
       final String source = "web:${urls.join(" ")}";
-      if (source != _remoteSource) {
+      if (source != _remoteSource && !_remoteLoading) {
         _remoteSource = source;
-        _remote = urls;
-        _remotePosition = 0;
-        _remoteError = urls.isEmpty ? "Add at least one image link (starting with https://)." : null;
-        _slideCounter++;
+        if (urls.isEmpty) {
+          _remote = [];
+          _remoteError = "Add at least one image link (starting with http:// or https://).";
+        } else if (urls.any((url) => url.endsWith("/"))) {
+          _resolveWebLinks(urls);
+        } else {
+          _remote = urls;
+          _remotePosition = 0;
+          _remoteError = null;
+          _slideCounter++;
+        }
       }
       return;
     }
@@ -265,6 +306,62 @@ class WallpaperService extends ChangeNotifier {
       return;
     }
     _fetchReddit(subreddits);
+  }
+
+  /// Links ending in "/" are folders (e.g. a PC sharing a wallpaper script's
+  /// output with `python -m http.server`); every picture listed there is used.
+  Future<void> _resolveWebLinks(List<String> urls) async {
+    _remoteLoading = true;
+    _remoteError = null;
+    notifyListeners();
+
+    final List<String> found = [];
+    String? error;
+    for (final String url in urls) {
+      if (!url.endsWith("/")) {
+        found.add(url);
+        continue;
+      }
+      try {
+        found.addAll(await _readFolderListing(Uri.parse(url)));
+      } catch (e) {
+        error = "Couldn't open $url ($e).";
+      }
+    }
+
+    _remoteLoading = false;
+    _remoteFetchedAt = DateTime.now();
+    if (found.isEmpty) {
+      _remote = [];
+      _remoteError = error ?? "No pictures found at those links.";
+    } else {
+      found.shuffle(_random);
+      _remote = found;
+      _remotePosition = 0;
+      _remoteError = error;
+      _slideCounter++;
+    }
+    _onSettingsChanged();
+    notifyListeners();
+  }
+
+  Future<List<String>> _readFolderListing(Uri folder) async {
+    final HttpClient client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
+    try {
+      final HttpClientRequest request = await client.getUrl(folder);
+      request.headers.set(HttpHeaders.userAgentHeader, _userAgent);
+      final HttpClientResponse response = await request.close().timeout(const Duration(seconds: 30));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw HttpException("HTTP ${response.statusCode}");
+      }
+      final String html = await response.transform(utf8.decoder).join();
+      final RegExp link = RegExp(r'''href\s*=\s*["']([^"']+\.(?:jpe?g|png|webp))["']''', caseSensitive: false);
+      return {
+        for (final Match match in link.allMatches(html)) folder.resolve(match.group(1)!).toString(),
+      }.toList();
+    } finally {
+      client.close(force: true);
+    }
   }
 
   static List<String> _splitList(String text) =>

@@ -133,7 +133,7 @@ const Map<String, Object> appearanceDefaults = {
   YamaKeys.wallpaperShadow: 35,
   YamaKeys.slideshowInterval: 300,
   YamaKeys.slideshowTransition: "fade",
-  YamaKeys.redditSubreddits: "wallpaper, WidescreenWallpaper",
+  YamaKeys.redditSubreddits: "tmdbwallpapers",
   YamaKeys.webImageUrls: "",
 
   YamaKeys.clockColor: 0xFFFFFFFF,
@@ -164,6 +164,14 @@ const List<int> yamaPalette = [
   0xFF0F2A2A, // deep teal
   0xFF000000, // black
 ];
+
+/// Subreddits suggested on the wallpaper settings page.
+const Map<String, String> yamaSuggestedSubreddits = {
+  "tmdbwallpapers": "TMDB movie & TV posters",
+  "wallpaper": "General wallpapers",
+  "WidescreenWallpaper": "Widescreen scenery & art",
+  "EarthPorn": "Landscapes (nature photos)",
+};
 
 const List<String> yamaFonts = ["System", "Poppins", "Nunito", "Quicksand", "Comfortaa", "Inter", "Lexend"];
 

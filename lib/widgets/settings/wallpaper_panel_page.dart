@@ -76,6 +76,37 @@ class WallpaperPanelPage extends StatelessWidget {
             }
           }),
         ),
+        if (wallpaper.deviceFolderPath != null)
+          YamaNavButton(
+            icon: Icons.usb,
+            label: "Copy pictures to the TV with ADB",
+            onPressed: () => showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text("Copy pictures with ADB"),
+                content: SelectableText(
+                  "On your PC, in the platform-tools folder, run:\n\n"
+                  "adb push \"C:\\path\\to\\your\\pictures\\.\" ${wallpaper.deviceFolderPath}/\n\n"
+                  "Then choose \"Reload slideshow pictures\". The pictures join the slideshow "
+                  "(Wallpaper → Show → Slideshow). This works well with the androidtvbackground "
+                  "TMDB script: push its output folder after each run.",
+                ),
+                actions: [
+                  TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("OK")),
+                ],
+              ),
+            ),
+          ),
+        YamaNavButton(
+          icon: Icons.refresh,
+          label: "Reload slideshow pictures",
+          onPressed: () async {
+            await wallpaper.reloadSlides();
+            if (context.mounted) {
+              _toast(context, "${wallpaper.slideCount} slideshow picture${wallpaper.slideCount == 1 ? "" : "s"} found");
+            }
+          },
+        ),
         if (s.wallpaperMode == WallpaperMode.solid)
           YamaColorPicker(
             label: "Solid color",
@@ -103,6 +134,16 @@ class WallpaperPanelPage extends StatelessWidget {
               }
             },
           ),
+          for (final suggestion in yamaSuggestedSubreddits.entries)
+            if (!_hasSubreddit(s.redditSubreddits, suggestion.key))
+              YamaNavButton(
+                icon: Icons.add,
+                label: "Add r/${suggestion.key} (${suggestion.value})",
+                onPressed: () => s.setValue(
+                  YamaKeys.redditSubreddits,
+                  s.redditSubreddits.trim().isEmpty ? suggestion.key : "${s.redditSubreddits.trim()}, ${suggestion.key}",
+                ),
+              ),
           _remoteStatus(context, wallpaper, "Reddit"),
         ],
         if (s.wallpaperMode == WallpaperMode.web) ...[
@@ -116,9 +157,10 @@ class WallpaperPanelPage extends StatelessWidget {
                 title: "Image links",
                 initial: s.webImageUrls,
                 hint: "https://example.com/wallpaper.jpg",
-                help: "One or more links to pictures, separated by spaces or commas. With a single link, "
-                    "YaMa reloads it each time, so a tool that regenerates the same file "
-                    "(for example a TMDB wallpaper script) shows its newest picture.",
+                help: "Links to pictures, or to a folder (ending in /) that lists pictures, separated by spaces. "
+                    "For the androidtvbackground TMDB script: on the PC, open its output folder and run "
+                    "python -m http.server 8000, then enter http://YOUR-PC-IP:8000/ here. "
+                    "Folders are re-read every hour, so new pictures show up.",
               );
               if (value != null) {
                 await s.setValue(YamaKeys.webImageUrls, value.trim());
@@ -221,6 +263,10 @@ class WallpaperPanelPage extends StatelessWidget {
       ],
     );
   }
+
+  static bool _hasSubreddit(String list, String name) => list
+      .split(RegExp(r"[\s,;]+"))
+      .any((part) => part.replaceFirst(RegExp(r"^/?r/", caseSensitive: false), "").toLowerCase() == name.toLowerCase());
 
   static Widget _remoteStatus(BuildContext context, WallpaperService wallpaper, String sourceName) {
     final String text;
