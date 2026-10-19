@@ -20,6 +20,7 @@ import 'dart:async';
 
 import 'package:flauncher/app_image_type.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/custom_icon_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/focus_keyboard_listener.dart';
@@ -124,6 +125,9 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       dim: (s.unfocusedDim / 100).clamp(0.0, 0.9).toDouble(),
       smooth: s.smoothMode,
     ));
+
+    // Redraw when this app's custom icon is added, replaced or reset.
+    context.select<CustomIconService, int>((s) => s.versionFor(widget.application.packageName));
 
     final CardShape shape = look.shape;
     final bool iconOnly = shape != CardShape.banner;
@@ -361,6 +365,16 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   {
     App app = widget.application;
 
+    // A custom icon (picked on the TV or copied with ADB) replaces the app's own.
+    final ImageProvider? custom = context.read<CustomIconService>().iconFor(app.packageName);
+    if (custom != null) {
+      return Ink.image(
+        image: custom,
+        fit: BoxFit.cover,
+        onImageError: (_, __) {},
+      );
+    }
+
     return FutureBuilder(
       future: _appImageLoadFuture,
       builder: (context, snapshot) {
@@ -532,6 +546,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       builder: (context) => ApplicationInfoPanel(
         category: widget.category,
         application: widget.application,
+        applicationIcon: context.read<CustomIconService>().iconFor(widget.application.packageName),
       ),
     );
     if (result == ApplicationInfoPanelResult.reorderApp) {

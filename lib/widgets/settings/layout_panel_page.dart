@@ -18,6 +18,7 @@
 
 import 'package:flauncher/models/layout_options.dart';
 import 'package:flauncher/models/yama_settings.dart';
+import 'package:flauncher/providers/custom_icon_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/settings/yama_controls.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,7 @@ class LayoutPanelPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context)!;
     final SettingsService s = context.watch<SettingsService>();
+    final CustomIconService icons = context.watch<CustomIconService>();
 
     return YamaSettingsPage(
       title: "Layout & cards",
@@ -173,6 +175,51 @@ class LayoutPanelPage extends StatelessWidget {
           value: s.marginBottom,
           items: _edges,
           onChanged: (v) => s.setValue(YamaKeys.marginBottom, v),
+        ),
+
+        const YamaSectionHeader("Custom icons"),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 8, 4),
+          child: Text(
+            "To change one app's icon, hold Select on the app and choose Change icon. "
+            "${icons.count} custom icon${icons.count == 1 ? "" : "s"} in use.",
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        if (icons.folderPath != null)
+          YamaNavButton(
+            icon: Icons.usb,
+            label: "Copy icons with ADB",
+            onPressed: () => showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text("Copy icons with ADB"),
+                content: SelectableText(
+                  "Name each picture after the app's package name, for example "
+                  "com.netflix.ninja.png or com.amazon.avod.thirdpartyclient.jpg "
+                  "(the package name is shown when you hold Select on an app).\n\n"
+                  "Then, in the platform-tools folder on your PC, run:\n\n"
+                  "adb push \"C:\\path\\to\\icons\\.\" ${icons.folderPath}/\n\n"
+                  "and choose \"Reload custom icons\". PNG, JPG and WEBP work. "
+                  "Wide pictures suit banner cards; square ones suit square or round cards.",
+                ),
+                actions: [
+                  TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("OK")),
+                ],
+              ),
+            ),
+          ),
+        YamaNavButton(
+          icon: Icons.refresh,
+          label: "Reload custom icons",
+          onPressed: () async {
+            final int found = await icons.reload();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("$found custom icon${found == 1 ? "" : "s"} found")),
+              );
+            }
+          },
         ),
 
         const YamaSectionHeader("Categories"),

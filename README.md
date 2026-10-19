@@ -16,7 +16,8 @@ A glassy, soft home screen for **Android TV and Fire TV**, built on the open-sou
 - Left, right and top margins
 - A soft glass "dock" behind each category (optionally frosted)
 - Hide empty categories automatically
-- Wider row-height (60–250) and grid-column (3–12) ranges per category
+- Wider row-height (60–250) and grid-column (1–12) ranges per category
+- Custom app icons: hold Select on an app → Change icon (uses your file explorer), or copy `<package>.png` files with ADB into `Android/data/app.yama.launcher/files/icons`
 
 **Focus effects**
 - Glow or drop shadow on the selected card

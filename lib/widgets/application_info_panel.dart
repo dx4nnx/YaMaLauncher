@@ -18,6 +18,8 @@
 
 import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/custom_icon_service.dart';
+import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -139,6 +141,50 @@ class ApplicationInfoPanel extends StatelessWidget
                        onPressed: () async {
                          await context.read<AppsService>().removeFromCategory(application, category!);
                          Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+                       },
+                     ),
+                   const Divider(),
+                   TextButton(
+                     child: Row(
+                       children: [
+                         const Icon(Icons.image_outlined),
+                         Container(width: 8),
+                         Text("Change icon", style: Theme.of(context).textTheme.bodyMedium),
+                       ],
+                     ),
+                     onPressed: () async {
+                       try {
+                         final bool changed = await context.read<CustomIconService>().pickIcon(application.packageName);
+                         if (changed && context.mounted) {
+                           Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+                         }
+                       } on NoFileExplorerException {
+                         if (context.mounted) {
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                             content: Text("No file explorer found. Install one (e.g. Cx File Explorer), or copy icons with ADB."),
+                           ));
+                         }
+                       } catch (e) {
+                         if (context.mounted) {
+                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Couldn't use that picture ($e)")));
+                         }
+                       }
+                     },
+                   ),
+                   if (context.watch<CustomIconService>().hasIcon(application.packageName))
+                     TextButton(
+                       child: Row(
+                         children: [
+                           const Icon(Icons.restore),
+                           Container(width: 8),
+                           Text("Reset to original icon", style: Theme.of(context).textTheme.bodyMedium),
+                         ],
+                       ),
+                       onPressed: () async {
+                         await context.read<CustomIconService>().resetIcon(application.packageName);
+                         if (context.mounted) {
+                           Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+                         }
                        },
                      ),
                    const Divider(),
