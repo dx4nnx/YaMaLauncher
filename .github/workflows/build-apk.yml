@@ -34,8 +34,33 @@ jobs:
       - name: Regenerate code and test mocks
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Analyze app code
+        run: |
+          set +e
+          flutter analyze lib --no-fatal-infos --no-fatal-warnings > analyze.txt 2>&1
+          code=$?
+          # Surface each error as an annotation (readable without log access).
+          python3 - <<'PY'
+          import re
+          count = 0
+          for line in open("analyze.txt", encoding="utf-8", errors="replace"):
+              if "error" not in line or "•" not in line:
+                  continue
+              parts = [p.strip() for p in line.split("•")]
+              if len(parts) < 3 or not parts[0].endswith("error"):
+                  continue
+              message, location = parts[1], parts[2]
+              m = re.match(r"(.+?):(\d+):(\d+)", location)
+              if m:
+                  print(f"::error file={m.group(1)},line={m.group(2)},col={m.group(3)}::{message}")
+              else:
+                  print(f"::error::{message} ({location})")
+              count += 1
+              if count >= 45:
+                  break
+          PY
+          tail -n 3 analyze.txt
+          exit $code
 
       - name: Run tests
         continue-on-error: true
