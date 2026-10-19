@@ -48,34 +48,63 @@ class AppsGrid extends StatelessWidget
       categoryContent = categoryContainerEmptyState(context);
     }
     else {
-      final look = context.select<SettingsService, ({CardShape shape, bool label, double glow, double gap, int across})>(
+      final look = context.select<SettingsService, ({CardShape shape, bool label, double glow, double gap, int across, int maxRows})>(
         (s) => (
           shape: s.cardShape,
           label: s.labelMode != LabelMode.never,
-          glow: s.focusEffect == FocusEffect.glow ? s.glowSize.toDouble() : 0.0,
+          glow: s.focusEffect == FocusEffect.glow && !s.smoothMode ? s.glowSize.toDouble() : 0.0,
           gap: s.cardSpacing.toDouble(),
           across: s.cardsAcross,
+          maxRows: s.maxVisibleRows,
         ),
       );
       categoryContent = LayoutBuilder(
-        builder: (context, constraints) => GridView.custom(
-        primary: false,
-        shrinkWrap: true,
-        gridDelegate: _buildSliverGridDelegate(look, constraints.maxWidth),
-        padding: EdgeInsets.all(16.0 + look.glow),
-        childrenDelegate: SliverChildBuilderDelegate(
-          childCount: applications.length,
-          findChildIndexCallback: _findChildIndex,
-          (context, index) => AppCard(
-              key: Key(applications[index].packageName),
-              category: category,
-              application: applications[index],
-              autofocus: index == 0,
-              onMove: (direction) => _onMove(context, direction, index),
-              onMoveEnd: () => _saveOrder(context)
-          )
-        )
-      ));
+        builder: (context, constraints) {
+          final int columns = _columns(look.across);
+          final double padding = 16.0 + look.glow;
+          final double cellWidth = max(1.0, (constraints.maxWidth - padding * 2 - look.gap * (columns - 1)) / columns);
+          final double cellHeight = cellWidth / cardAspectRatio(look.shape) + (look.label ? appLabelHeight : 0);
+          final double rowGap = max(look.gap, 16.0 + look.glow);
+          final int totalRows = (applications.length / columns).ceil();
+          final bool limited = look.maxRows > 0 && totalRows > look.maxRows;
+
+          final Widget grid = GridView.custom(
+            primary: false,
+            shrinkWrap: !limited,
+            // When limited, the grid scrolls inside its own window; the
+            // selected app is brought into view as you move down.
+            physics: limited ? const ClampingScrollPhysics() : null,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisExtent: cellHeight,
+              mainAxisSpacing: rowGap,
+              crossAxisSpacing: look.gap,
+            ),
+            padding: EdgeInsets.all(padding),
+            childrenDelegate: SliverChildBuilderDelegate(
+              childCount: applications.length,
+              findChildIndexCallback: _findChildIndex,
+              (context, index) => AppCard(
+                  key: Key(applications[index].packageName),
+                  category: category,
+                  application: applications[index],
+                  autofocus: index == 0,
+                  onMove: (direction) => _onMove(context, direction, index),
+                  onMoveEnd: () => _saveOrder(context)
+              )
+            )
+          );
+
+          if (!limited) {
+            return grid;
+          }
+          final int rows = look.maxRows;
+          return SizedBox(
+            height: padding * 2 + rows * cellHeight + (rows - 1) * rowGap,
+            child: grid,
+          );
+        }
+      );
     }
 
     return yamaCategoryShell(context, category.name, categoryContent);
@@ -124,20 +153,5 @@ class AppsGrid extends StatelessWidget
   }
 
   int _columns(int across) => across > 0 ? across : category.columnsCount;
-
-  SliverGridDelegate _buildSliverGridDelegate(
-      ({CardShape shape, bool label, double glow, double gap, int across}) look, double availableWidth) {
-    final int columns = _columns(look.across);
-    final double padding = 16.0 + look.glow;
-    final double cellWidth = max(1.0, (availableWidth - padding * 2 - look.gap * (columns - 1)) / columns);
-    final double labelHeight = look.label ? appLabelHeight : 0;
-
-    return SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: columns,
-      mainAxisExtent: cellWidth / cardAspectRatio(look.shape) + labelHeight,
-      mainAxisSpacing: max(look.gap, 16.0 + look.glow),
-      crossAxisSpacing: look.gap,
-    );
-  }
 
 }

@@ -57,6 +57,21 @@ class LayoutPanelPage extends StatelessWidget {
           },
           onChanged: (v) => s.setValue(YamaKeys.cardsAcross, v),
         ),
+        YamaDropdown<int>(
+          label: "Rows shown at once (grids)",
+          icon: Icons.table_rows_outlined,
+          value: s.maxVisibleRows,
+          items: const {0: "All rows", 1: "1 row", 2: "2 rows", 3: "3 rows", 4: "4 rows"},
+          onChanged: (v) => s.setValue(YamaKeys.maxVisibleRows, v),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 8, 6),
+          child: Text(
+            "For categories set to Grid (Launcher sections). Extra rows scroll inside the grid "
+            "as you move down, so the wallpaper stays visible.",
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
 
         const YamaSectionHeader("Cards"),
         YamaDropdown<CardShape>(

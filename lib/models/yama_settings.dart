@@ -51,6 +51,7 @@ abstract class YamaKeys {
   static const hideEmptyCategories = "hide_empty_categories";
   static const smoothMode = "smooth_mode";
   static const cardsAcross = "cards_across";
+  static const maxVisibleRows = "max_visible_rows";
   /// Same key FLauncher already uses, so themes can include it.
   static const categoryTitles = "show_category_titles";
   static const appsPosition = "apps_position";
@@ -112,6 +113,7 @@ const Map<String, Object> appearanceDefaults = {
   YamaKeys.hideEmptyCategories: true,
   YamaKeys.smoothMode: true,
   YamaKeys.cardsAcross: 0,
+  YamaKeys.maxVisibleRows: 0,
   YamaKeys.categoryTitles: true,
   YamaKeys.appsPosition: "top",
   YamaKeys.iconCardColor: 0x33FFFFFF,
@@ -182,6 +184,7 @@ const Map<String, Map<String, Object>> yamaPresets = {
   "YaMa Glass": appearanceDefaults,
   "Frosted Icons": {
     YamaKeys.appsPosition: "top",
+    YamaKeys.maxVisibleRows: 0,
     YamaKeys.cardsAcross: 0,
     YamaKeys.categoryTitles: true,
     YamaKeys.cardShape: "square",
@@ -201,6 +204,7 @@ const Map<String, Map<String, Object>> yamaPresets = {
   },
   "Bubble": {
     YamaKeys.appsPosition: "top",
+    YamaKeys.maxVisibleRows: 0,
     YamaKeys.cardsAcross: 0,
     YamaKeys.categoryTitles: true,
     YamaKeys.cardShape: "circle",
@@ -216,6 +220,7 @@ const Map<String, Map<String, Object>> yamaPresets = {
   },
   "Night Calm": {
     YamaKeys.appsPosition: "top",
+    YamaKeys.maxVisibleRows: 0,
     YamaKeys.cardsAcross: 0,
     YamaKeys.categoryTitles: true,
     YamaKeys.cardShape: "banner",
@@ -232,6 +237,7 @@ const Map<String, Map<String, Object>> yamaPresets = {
   },
   "Poster (apps at bottom)": {
     YamaKeys.appsPosition: "bottom",
+    YamaKeys.maxVisibleRows: 2,
     YamaKeys.cardShape: "banner",
     YamaKeys.labelMode: "never",
     YamaKeys.cardsAcross: 6,
@@ -248,6 +254,7 @@ const Map<String, Map<String, Object>> yamaPresets = {
   },
   "Classic FLauncher": {
     YamaKeys.appsPosition: "top",
+    YamaKeys.maxVisibleRows: 0,
     YamaKeys.cardsAcross: 0,
     YamaKeys.categoryTitles: true,
     YamaKeys.cardShape: "banner",

@@ -54,7 +54,7 @@ class CategoryRow extends StatelessWidget
         shape: s.cardShape,
         label: s.labelMode != LabelMode.never,
         zoom: s.focusZoom,
-        glow: s.focusEffect == FocusEffect.glow ? s.glowSize.toDouble() : 0.0,
+        glow: s.focusEffect == FocusEffect.glow && !s.smoothMode ? s.glowSize.toDouble() : 0.0,
         gap: s.cardSpacing.toDouble(),
         across: s.cardsAcross,
       ));

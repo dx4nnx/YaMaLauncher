@@ -161,8 +161,9 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         final Widget card = AspectRatio(
           aspectRatio: cardAspectRatio(shape),
           child: AnimatedContainer(
-            duration: look.smooth ? Duration.zero : const Duration(milliseconds: 160),
-            curve: Curves.easeOut,
+            // A quick, gentle zoom: transforms are cheap even on slow TVs.
+            duration: Duration(milliseconds: look.smooth ? 130 : 180),
+            curve: Curves.easeOutCubic,
             transformAlignment: Alignment.center,
             transform: _scaleTransform(context, look.zoom),
             child: Stack(
@@ -192,43 +193,50 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                               setState(() => _focused = focused);
                             }
                             if (focused) {
-                              // Jump straight to the card. An animated scroll makes
-                              // the remote's next press measure moving cards, which
-                              // on slow TVs skips apps or leaves two looking selected.
-                              Scrollable.ensureVisible(context, alignment: 0.5);
+                              // Short, eased scroll: smooth to the eye, but over before
+                              // the remote's next press measures card positions.
+                              Scrollable.ensureVisible(
+                                context,
+                                alignment: 0.5,
+                                duration: const Duration(milliseconds: 150),
+                                curve: Curves.easeOutCubic,
+                              );
                             }
                           },
                         ),
                         if (_moving) ..._arrows(),
-                        if (!shouldHighlight && look.dim > 0)
-                          IgnorePointer(child: ColoredBox(color: Colors.black.withOpacity(look.dim))),
+                        if (look.dim > 0)
+                          IgnorePointer(
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 140),
+                              opacity: shouldHighlight ? 0 : 1,
+                              child: ColoredBox(color: Colors.black.withOpacity(look.dim)),
+                            ),
+                          ),
                         if (shouldHighlight && tintStrength > 0)
                           IgnorePointer(child: ColoredBox(color: Color(look.tintColor).withOpacity(tintStrength))),
                       ],
                     ),
                   ),
                 ),
-                // Solid ring on the selected card, so it's always obvious.
-                if (focusedStill && effect != FocusEffect.none)
-                  IgnorePointer(
+                // Solid ring on the selected card, faded in so moving feels smooth.
+                IgnorePointer(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 140),
+                    curve: Curves.easeOut,
+                    opacity: focusedStill ? 1 : 0,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         shape: circle ? BoxShape.circle : BoxShape.rectangle,
                         borderRadius: boxRadius,
-                        border: Border.all(color: ringColor, width: 3.5),
+                        border: Border.all(
+                          color: effect == FocusEffect.none ? Colors.white : ringColor,
+                          width: 3.5,
+                        ),
                       ),
                     ),
                   ),
-                if (focusedStill && effect == FocusEffect.none)
-                  IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        shape: circle ? BoxShape.circle : BoxShape.rectangle,
-                        borderRadius: boxRadius,
-                        border: Border.all(color: Colors.white, width: 3),
-                      ),
-                    ),
-                  ),
+                ),
               ],
             ),
           ),

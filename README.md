@@ -9,6 +9,7 @@ A glassy, soft home screen for **Android TV and Fire TV**, built on the open-sou
 **Look & layout** (Settings → Layout & cards)
 - Apps at the top, or at the bottom to leave room for poster-style (TMDB) wallpapers
 - Apps across the screen: 2 to 8 big cards, or per-category sizes (grids go down to 1 column)
+- Rows shown at once for grids (e.g. 2 rows under a TMDB poster; the rest scroll inside)
 - Card shape: wide banner, square icon or round icon, with a translucent background for icon cards
 - App names: hidden, on the selected app only, or always
 - Zoom on the selected app, corner roundness, space between apps and rows

@@ -128,6 +128,8 @@ class SettingsService extends ChangeNotifier {
   /// Faster on slow TVs: no glow, shadows or slide animations.
   bool get smoothMode => _bool(YamaKeys.smoothMode);
   int get cardsAcross => _int(YamaKeys.cardsAcross);
+  /// Rows a grid shows at once (0 = all); the rest scroll inside it.
+  int get maxVisibleRows => _int(YamaKeys.maxVisibleRows);
   AppsPosition get appsPosition =>
       enumFromName(AppsPosition.values, _string(YamaKeys.appsPosition), AppsPosition.top);
   String get redditSubreddits => _string(YamaKeys.redditSubreddits);
