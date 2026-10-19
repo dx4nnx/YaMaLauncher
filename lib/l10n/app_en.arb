@@ -1,0 +1,122 @@
+{
+    "aboutFlauncher": "About YaMa Launcher",
+    "addCategory": "Add category",
+    "addSection": "Add section",
+    "alphabetical": "Alphabetical",
+    "appCardHighlightAnimation": "App card highlight animation",
+    "appInfo": "Application info",
+    "appKeyClick": "Click sound on key press",
+    "applications": "Applications",
+    "autoHideAppBar": "Automatically hide status bar",
+    "backButtonAction": "Back button action",
+    "category": "Category",
+    "categories": "Categories",
+    "columnCount": "Column count",
+    "date": "Date",
+    "dateAndTimeFormat": "Date and time format",
+    "delete": "Delete",
+    "dialogOptionBackButtonActionDoNothing": "Do nothing",
+    "dialogOptionBackButtonActionShowScreensaver": "Show screensaver",
+    "dialogOptionBackButtonActionShowClock": "Show clock",
+    "dialogTextNoFileExplorer": "Please install a file explorer in order to pick a picture.",
+    "dialogTitleBackButtonAction": "Choose the back button action",
+    "disambiguateCategoryTitle": "{title} (Category)",
+    "@disambiguateCategoryTitle": {
+        "placeholders": {
+            "title": {
+                "type": "String"
+            }
+        }
+    },
+    "formattedDate": "Formatted date: {dateString}",
+    "@formattedDate": {
+        "placeholders": {
+            "dateString": {
+                "type": "String"
+            }
+        }
+    },
+    "formattedTime": "Formatted time: {timeString}",
+    "@formattedTime": {
+        "placeholders": {
+            "timeString": {
+                "type": "String"
+            }
+        }
+    },
+    "gradient": "Gradient",
+    "grid": "Grid",
+    "height": "Height",
+    "hide": "Hide",
+    "hiddenApplications": "Hidden applications",
+    "launcherSections": "Sections",
+    "layout": "Layout",
+    "loading": "Loading",
+    "manual": "Manual",
+    "modifySection": "Modify section",
+    "mustNotBeEmpty": "Must not be empty",
+    "name": "Name",
+    "newSection": "New section",
+    "noDateFormatSpecified": "No date format specified",
+    "noTimeFormatSpecified": "No time format specified",
+    "nonTvApplications": "Non-TV applications",
+    "open": "Open",
+    "orSelectFormatSpecifiers": "Or select format specifiers",
+    "picture": "Picture",
+    "removeFrom": "Remove from {name}",
+    "@removeFrom": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "renameCategory": "Rename category",
+    "reorder": "Reorder",
+    "row": "Row",
+    "rowHeight": "Row height",
+    "save": "Save",
+    "spacer": "Spacer",
+    "spacerMaxHeightRequirement": "Must be greater than 0 and less than or equal to 500",
+    "statusBar": "Status bar",
+    "settings": "Settings",
+    "show": "Show",
+    "showCategoryTitles": "Show category titles",
+    "sort": "Sort",
+    "systemSettings": "System settings",
+    "textAboutDialog": "YaMa Launcher is a glassy, open-source launcher for Android TV and Fire TV, built on FLauncher.\nSource code of the original FLauncher: {repoUrl}.\n\nFLauncher by Étienne Fesser and Oscar Rojas. Original logo by Katie (@fureturoe), design by @FXCostanzo. Fonts: Nunito, Quicksand, Comfortaa, Inter and Lexend (SIL Open Font License).",
+    "@textAboutDialog": {
+        "placeholders": {
+            "repoUrl": {
+                "type": "String"
+            }
+        }
+    },
+    "textEmptyCategory": "This category is empty.",
+    "time": "Time",
+    "titleStatusBarSettingsPage": "Choose what to display in the status bar",
+    "tvApplications": "TV applications",
+    "type": "Type",
+    "typeInTheDateFormat": "Type in the date format",
+    "typeInTheHourFormat": "Type in the hour format",
+    "uninstall": "Uninstall",
+    "wallpaper": "Wallpaper",
+    "withEllipsisAddTo": "Add to...",
+    "layoutAndAppearance": "Layout & appearance",
+    "cardShape": "Card shape",
+    "cardShapeBanner": "Wide banner",
+    "cardShapeSquare": "Square icon",
+    "cardShapeCircle": "Round icon",
+    "appNames": "App names",
+    "appNamesNever": "Hidden",
+    "appNamesFocused": "Only on selected app",
+    "appNamesAlways": "Always",
+    "focusZoom": "Zoom on selected app",
+    "cornerRadius": "Corner roundness",
+    "cardSpacing": "Space between apps",
+    "sectionSpacing": "Space between rows",
+    "wallpaperDim": "Dim wallpaper",
+    "wallpaperBlur": "Blur wallpaper",
+    "off": "Off",
+    "cardSizeHint": "Card size is set per category: Settings → Launcher sections → row height or column count."
+}
