@@ -65,6 +65,18 @@ class FLauncherChannel {
 
   Future<void> startAmbientMode() async => await _methodChannel.invokeMethod("startAmbientMode");
 
+  /// Home button helper: whether it's switched on in the system, and in YaMa.
+  Future<({bool serviceOn, bool enabled})> homeButtonStatus() async {
+    final Map<dynamic, dynamic> status = await _methodChannel.invokeMethod("homeButtonStatus");
+    return (serviceOn: status["serviceOn"] == true, enabled: status["enabled"] != false);
+  }
+
+  Future<void> setHomeButtonEnabled(bool enabled) async =>
+      await _methodChannel.invokeMethod("setHomeButtonEnabled", enabled);
+
+  /// Opens the Fire TV home screen and lets it stay for a minute.
+  Future<bool> openFireTvHome() async => await _methodChannel.invokeMethod("openFireTvHome") == true;
+
   /// Opens YaMa's screensaver straight away (any button closes it).
   Future<void> previewScreensaver() async => await _methodChannel.invokeMethod("previewScreensaver");
 

@@ -23,6 +23,7 @@ import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
 import 'package:flauncher/widgets/settings/launcher_section_panel_page.dart';
 import 'package:flauncher/widgets/settings/clock_text_panel_page.dart';
 import 'package:flauncher/widgets/settings/focus_panel_page.dart';
+import 'package:flauncher/widgets/settings/home_button_panel_page.dart';
 import 'package:flauncher/widgets/settings/layout_panel_page.dart';
 import 'package:flauncher/widgets/settings/themes_panel_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
@@ -60,6 +61,8 @@ class _SettingsPanelState extends State<SettingsPanel> {
                 return MaterialPageRoute(builder: (_) => WallpaperPanelPage());
               case LayoutPanelPage.routeName:
                 return MaterialPageRoute(builder: (_) => LayoutPanelPage());
+              case HomeButtonPanelPage.routeName:
+                return MaterialPageRoute(builder: (_) => HomeButtonPanelPage());
               case FocusPanelPage.routeName:
                 return MaterialPageRoute(builder: (_) => FocusPanelPage());
               case ClockTextPanelPage.routeName:

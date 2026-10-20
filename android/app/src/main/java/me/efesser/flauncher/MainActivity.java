@@ -80,6 +80,32 @@ public class MainActivity extends FlutterActivity
                 case "isDefaultLauncher" -> result.success(isDefaultLauncher());
                 case "checkForGetContentAvailability" -> result.success(checkForGetContentAvailability());
                 case "startAmbientMode" -> result.success(startAmbientMode());
+                case "homeButtonStatus" -> {
+                    java.util.Map<String, Object> status = new java.util.HashMap<>();
+                    status.put("serviceOn", YamaHomeService.isServiceOn(this));
+                    status.put("enabled", YamaHomeService.prefs(this).getBoolean(YamaHomeService.KEY_ENABLED, true));
+                    result.success(status);
+                }
+                case "setHomeButtonEnabled" -> {
+                    Boolean on = call.arguments();
+                    YamaHomeService.prefs(this).edit().putBoolean(YamaHomeService.KEY_ENABLED, on != null && on).apply();
+                    result.success(true);
+                }
+                case "openFireTvHome" -> {
+                    // Let the Fire TV home screen stay for a minute.
+                    YamaHomeService.prefs(this).edit()
+                            .putLong(YamaHomeService.KEY_PAUSE_UNTIL, System.currentTimeMillis() + 60_000).apply();
+                    Intent home = new Intent(Intent.ACTION_MAIN);
+                    home.addCategory(Intent.CATEGORY_HOME);
+                    home.setPackage("com.amazon.tv.launcher");
+                    home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    try {
+                        startActivity(home);
+                        result.success(true);
+                    } catch (Exception e) {
+                        result.success(false);
+                    }
+                }
                 case "previewScreensaver" -> {
                     startActivity(new Intent(this, YamaDreamPreviewActivity.class));
                     result.success(true);

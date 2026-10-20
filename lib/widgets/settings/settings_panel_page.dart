@@ -25,6 +25,7 @@ import 'package:flauncher/widgets/settings/date_time_format_dialog.dart';
 import 'package:flauncher/widgets/settings/flauncher_about_dialog.dart';
 import 'package:flauncher/widgets/settings/clock_text_panel_page.dart';
 import 'package:flauncher/widgets/settings/focus_panel_page.dart';
+import 'package:flauncher/widgets/settings/home_button_panel_page.dart';
 import 'package:flauncher/widgets/settings/layout_panel_page.dart';
 import 'package:flauncher/widgets/settings/themes_panel_page.dart';
 import 'package:flauncher/widgets/settings/yama_controls.dart';
@@ -111,6 +112,12 @@ class SettingsPanelPage extends StatelessWidget {
                     icon: Icons.schedule,
                     label: "Clock & text",
                     onPressed: () => Navigator.of(context).pushNamed(ClockTextPanelPage.routeName),
+                  ),
+                  const YamaSectionHeader("Fire TV"),
+                  YamaNavButton(
+                    icon: Icons.home_outlined,
+                    label: "Home button",
+                    onPressed: () => Navigator.of(context).pushNamed(HomeButtonPanelPage.routeName),
                   ),
                   const Divider(),
                   TextButton(
