@@ -118,6 +118,8 @@ class YamaBackground extends StatelessWidget {
         return _ReadySwitcher(
           image: slide,
           counter: wallpaper.slideCounter,
+          // Reddit posts can be phone-shaped; skip those on a TV.
+          onPortrait: wallpaper.mode == WallpaperMode.reddit ? wallpaper.nextWallpaper : null,
           placeholder: _gradient(wallpaper),
           builder: (image, counter) => AnimatedSwitcher(
             duration: const Duration(milliseconds: 1400),
@@ -214,9 +216,13 @@ class _ReadySwitcher extends StatefulWidget {
   final Widget placeholder;
   final Widget Function(ImageProvider image, int counter) builder;
 
+  /// Called instead of showing a picture that is taller than it is wide.
+  final VoidCallback? onPortrait;
+
   const _ReadySwitcher({
     required this.image,
     required this.counter,
+    this.onPortrait,
     required this.placeholder,
     required this.builder,
   });
@@ -229,6 +235,7 @@ class _ReadySwitcherState extends State<_ReadySwitcher> {
   ImageProvider? _shown;
   int _shownCounter = -1;
   int _requested = -1;
+  int _skipsInARow = 0;
 
   @override
   void didChangeDependencies() {
@@ -254,16 +261,30 @@ class _ReadySwitcherState extends State<_ReadySwitcher> {
     final double ratio = MediaQuery.devicePixelRatioOf(context);
     final double width = MediaQuery.sizeOf(context).width;
     final ImageProvider sized = ResizeImage.resizeIfNeeded((width * ratio).round(), null, target);
-    bool failed = false;
-    precacheImage(sized, context, onError: (_, __) => failed = true).then((_) {
-      // A picture that fails to load is skipped; the previous one stays.
-      if (mounted && _requested == counter && !failed) {
+    final ImageStream stream = sized.resolve(createLocalImageConfiguration(context));
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (ImageInfo info, bool _) {
+        stream.removeListener(listener);
+        if (!mounted || _requested != counter) return;
+        final bool portrait = info.image.height > info.image.width;
+        // Give up skipping after a few in a row, so a feed of only tall
+        // pictures still shows something.
+        if (portrait && widget.onPortrait != null && _skipsInARow < 8) {
+          _skipsInARow++;
+          WidgetsBinding.instance.addPostFrameCallback((_) => widget.onPortrait?.call());
+          return;
+        }
+        _skipsInARow = 0;
         setState(() {
           _shown = target;
           _shownCounter = counter;
         });
-      }
-    });
+      },
+      // A picture that fails to load is skipped; the previous one stays.
+      onError: (Object _, StackTrace? __) => stream.removeListener(listener),
+    );
+    stream.addListener(listener);
   }
 
   @override

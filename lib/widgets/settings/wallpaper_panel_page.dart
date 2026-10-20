@@ -142,8 +142,8 @@ class WallpaperPanelPage extends StatelessWidget {
                 title: "Subreddits",
                 initial: s.redditSubreddits,
                 hint: "wallpaper, WidescreenWallpaper",
-                help: "Names separated by commas, without r/. Only wide pictures at least 1280 pixels across "
-                    "are used, and adult posts are skipped.",
+                help: "Names separated by commas, without r/. YaMa reads each subreddit's public feed "
+                    "and uses picture posts; tall (phone-shaped) pictures are skipped.",
               );
               if (value != null) {
                 await s.setValue(YamaKeys.redditSubreddits, value.trim());

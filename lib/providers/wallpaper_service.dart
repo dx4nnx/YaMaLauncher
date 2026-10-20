@@ -374,12 +374,14 @@ class WallpaperService extends ChangeNotifier {
     _remoteError = null;
     notifyListeners();
 
-    final String path = "/r/${subreddits.join("+")}/hot.json?limit=100&raw_json=1";
+    // Reddit no longer serves its JSON listings to apps that aren't signed
+    // in (HTTP 403), but its public RSS feeds still work.
+    final String path = "/r/${subreddits.join("+")}/hot/.rss?limit=100";
     List<String> found = [];
     String? error;
-    for (final String host in const ["www.reddit.com", "old.reddit.com", "api.reddit.com"]) {
+    for (final String host in const ["www.reddit.com", "old.reddit.com"]) {
       try {
-        found = await _readRedditListing(Uri.parse("https://$host$path"));
+        found = await _readRedditFeed(Uri.parse("https://$host$path"));
         error = null;
         break;
       } catch (e) {
@@ -390,7 +392,7 @@ class WallpaperService extends ChangeNotifier {
     _remoteLoading = false;
     _remoteFetchedAt = DateTime.now();
     if (found.isEmpty) {
-      _remoteError = error ?? "No wide pictures found in those subreddits.";
+      _remoteError = error ?? "No pictures found in those subreddits.";
     } else {
       found.shuffle(_random);
       _remote = found;
@@ -402,75 +404,34 @@ class WallpaperService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Reads a subreddit listing and keeps landscape pictures at least 1280px wide.
-  Future<List<String>> _readRedditListing(Uri uri) async {
+  /// Reads a subreddit RSS (Atom) feed and keeps direct picture links
+  /// (i.redd.it and imgur). Tall pictures are skipped when they load.
+  Future<List<String>> _readRedditFeed(Uri uri) async {
     final HttpClient client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
     try {
       final HttpClientRequest request = await client.getUrl(uri);
       request.headers.set(HttpHeaders.userAgentHeader, _userAgent);
-      request.headers.set(HttpHeaders.acceptHeader, "application/json");
+      request.headers.set(HttpHeaders.acceptHeader, "application/atom+xml, application/xml;q=0.9, */*;q=0.5");
       final HttpClientResponse response = await request.close().timeout(const Duration(seconds: 30));
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw HttpException("HTTP ${response.statusCode}");
       }
-      final String body = await response.transform(utf8.decoder).join();
-      final Object? json = jsonDecode(body);
-      final List<String> urls = [];
-      final Object? children = json is Map ? (json["data"] is Map ? json["data"]["children"] : null) : null;
-      if (children is! List) {
-        return urls;
-      }
-      for (final Object? child in children) {
-        if (child is! Map || child["data"] is! Map) {
-          continue;
-        }
-        final Map post = child["data"] as Map;
-        if (post["over_18"] == true || post["stickied"] == true) {
-          continue;
-        }
-        final String? url = _pictureFromPost(post);
-        if (url != null) {
-          urls.add(url);
-        }
-      }
-      return urls;
+      final String feed = await response.transform(utf8.decoder).join();
+      // Post bodies are HTML escaped inside the feed.
+      final String text = feed
+          .replaceAll("&quot;", '"')
+          .replaceAll("&#34;", '"')
+          .replaceAll("&lt;", "<")
+          .replaceAll("&gt;", ">")
+          .replaceAll("&amp;", "&");
+      final RegExp picture = RegExp(
+        r"""https://(?:i\.redd\.it|i\.imgur\.com)/[A-Za-z0-9_\-]+\.(?:jpe?g|png|webp)""",
+        caseSensitive: false,
+      );
+      return {for (final Match match in picture.allMatches(text)) match.group(0)!}.toList();
     } finally {
       client.close(force: true);
     }
-  }
-
-  static String? _pictureFromPost(Map post) {
-    bool wide(num? width, num? height) =>
-        width != null && height != null && width >= 1280 && width > height * 1.2;
-
-    // Single picture posts: use the full-size source from the preview data.
-    final Object? preview = post["preview"];
-    if (preview is Map && preview["images"] is List && (preview["images"] as List).isNotEmpty) {
-      final Object? first = (preview["images"] as List).first;
-      final Object? source = first is Map ? first["source"] : null;
-      if (source is Map && wide(source["width"] as num?, source["height"] as num?)) {
-        final String direct = (post["url"] ?? "").toString();
-        if (RegExp(r"\.(jpe?g|png|webp)$", caseSensitive: false).hasMatch(direct)) {
-          return direct;
-        }
-        final Object? sourceUrl = source["url"];
-        if (sourceUrl is String && sourceUrl.startsWith("http")) {
-          return sourceUrl;
-        }
-      }
-    }
-
-    // Gallery posts: take the first wide picture.
-    final Object? metadata = post["media_metadata"];
-    if (post["is_gallery"] == true && metadata is Map) {
-      for (final Object? item in metadata.values) {
-        final Object? s = item is Map ? item["s"] : null;
-        if (s is Map && s["u"] is String && wide(s["x"] as num?, s["y"] as num?)) {
-          return s["u"] as String;
-        }
-      }
-    }
-    return null;
   }
 
   Future<void> _ensureFileExplorer() async {

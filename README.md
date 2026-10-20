@@ -25,7 +25,7 @@ A glassy, soft home screen for **Android TV and Fire TV**, built on the open-sou
 - Optional tint on the selected card, and dimming of the others
 
 **Wallpaper**
-- Gradient, single picture, solid color, a slideshow of your own pictures, **Reddit** (any subreddits; wide pictures only, adult posts skipped) or **web image links**
+- Gradient, single picture, solid color, a slideshow of your own pictures, **Reddit** (any subreddits, read from their public RSS feeds; tall pictures skipped) or **web image links**
 - Slideshow timer (15 s to 6 h) and transitions: fade, zoom, slide sideways, slide up, or random
 - Press **Play/Pause** on the remote for the next picture
 - Blur, dim, brightness, color intensity, color tint and a soft top/bottom shadow
