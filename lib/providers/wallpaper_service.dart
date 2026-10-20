@@ -115,6 +115,78 @@ class WallpaperService extends ChangeNotifier {
         orElse: () => FLauncherGradients.greatWhale,
       );
 
+  Timer? _exportTimer;
+
+  /// Opens YaMa's screensaver straight away, after saving its settings.
+  Future<void> previewScreensaver() async {
+    _exportTimer?.cancel();
+    await _exportScreensaver();
+    await _fLauncherChannel.previewScreensaver();
+  }
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    _scheduleExport();
+  }
+
+  /// The screensaver is native Android code; it reads what to show from
+  /// screensaver.json, kept in step with the launcher's look.
+  void _scheduleExport() {
+    _exportTimer?.cancel();
+    _exportTimer = Timer(const Duration(seconds: 2), _exportScreensaver);
+  }
+
+  Future<void> _exportScreensaver() async {
+    try {
+      final Directory directory = await getApplicationDocumentsDirectory();
+      final SettingsService s = _settingsService;
+      final List<String> local = [];
+      final List<String> remote = [];
+      switch (mode) {
+        case WallpaperMode.slideshow:
+          local.addAll(_slides.map((file) => file.path));
+        case WallpaperMode.image:
+          final File? file = _wallpaperFile;
+          if (file != null && await file.exists()) local.add(file.path);
+        case WallpaperMode.reddit:
+        case WallpaperMode.web:
+          remote.addAll(_remote);
+        case WallpaperMode.gradient:
+        case WallpaperMode.solid:
+          break;
+      }
+      final List<int> colors = mode == WallpaperMode.solid
+          ? [s.wallpaperSolidColor]
+          : (gradient.gradient is LinearGradient
+              ? (gradient.gradient as LinearGradient).colors.map((c) => c.value).toList()
+              : <int>[]);
+      final Map<String, Object> config = {
+        "local": local,
+        "remote": remote.take(200).toList(),
+        "colors": colors,
+        "interval": s.slideshowInterval,
+        "transition": s.slideshowTransition.name,
+        "dim": s.wallpaperDim,
+        "shadow": s.wallpaperShadow,
+        "font": s.fontFamily,
+        "clock": {
+          "showTime": s.showTimeInStatusBar,
+          "showDate": s.showDateInStatusBar,
+          "twoLines": s.clockTwoLines,
+          "color": s.clockColor,
+          "size": s.clockSize,
+          "shadow": s.clockShadow,
+          "timeFormat": s.timeFormat,
+          "dateFormat": s.dateFormat,
+        },
+      };
+      await File("${directory.path}/screensaver.json").writeAsString(jsonEncode(config), flush: true);
+    } catch (_) {
+      // The screensaver falls back to defaults if this can't be written.
+    }
+  }
+
   WallpaperService(this._fLauncherChannel, this._settingsService) :
     _wallpaper = null
   {
@@ -146,12 +218,14 @@ class WallpaperService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _exportTimer?.cancel();
     _slideTimer?.cancel();
     _settingsService.removeListener(_onSettingsChanged);
     super.dispose();
   }
 
   void _onSettingsChanged() {
+    _scheduleExport();
     final WallpaperMode currentMode = mode;
     final int interval = _settingsService.slideshowInterval;
     _ensureRemote(currentMode);

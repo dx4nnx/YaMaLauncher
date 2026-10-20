@@ -65,6 +65,9 @@ class FLauncherChannel {
 
   Future<void> startAmbientMode() async => await _methodChannel.invokeMethod("startAmbientMode");
 
+  /// Opens YaMa's screensaver straight away (any button closes it).
+  Future<void> previewScreensaver() async => await _methodChannel.invokeMethod("previewScreensaver");
+
   void addAppsChangedListener(void Function(Map<String, dynamic>) listener) =>
       _appsEventChannel.receiveBroadcastStream().listen((event) {
         Map<dynamic, dynamic> eventMap = event;

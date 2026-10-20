@@ -75,6 +75,24 @@
             </intent-filter>
         </activity>
 
+        <!-- YaMa screensaver (switched on with ADB, see YamaDream.java) -->
+        <service
+            android:name=".YamaDream"
+            android:exported="true"
+            android:label="YaMa Launcher"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".YamaDreamPreviewActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

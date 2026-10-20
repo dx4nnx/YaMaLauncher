@@ -80,6 +80,10 @@ public class MainActivity extends FlutterActivity
                 case "isDefaultLauncher" -> result.success(isDefaultLauncher());
                 case "checkForGetContentAvailability" -> result.success(checkForGetContentAvailability());
                 case "startAmbientMode" -> result.success(startAmbientMode());
+                case "previewScreensaver" -> {
+                    startActivity(new Intent(this, YamaDreamPreviewActivity.class));
+                    result.success(true);
+                }
                 case "getActiveNetworkInformation" -> result.success(getActiveNetworkInformation());
                 default -> throw new IllegalArgumentException();
             }

@@ -20,6 +20,7 @@ import 'dart:io';
 
 import 'package:flauncher/models/yama_settings.dart';
 import 'package:flauncher/providers/settings_service.dart';
+import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/settings/yama_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -134,6 +135,38 @@ class ThemesPanelPage extends StatelessWidget {
             await s.resetAppearance();
             if (context.mounted) _toast(context, "Look reset");
           },
+        ),
+
+        const YamaSectionHeader("Screensaver"),
+        YamaNavButton(
+          icon: Icons.slideshow_outlined,
+          label: "Preview YaMa screensaver",
+          onPressed: () => context.read<WallpaperService>().previewScreensaver(),
+        ),
+        YamaNavButton(
+          icon: Icons.usb,
+          label: "Use it as the Fire TV screensaver (ADB)",
+          onPressed: () => showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Use YaMa as the screensaver"),
+              content: const SingleChildScrollView(
+                child: SelectableText(
+                  "It shows your YaMa wallpapers (same source, timer and transition) with a large clock. "
+                  "Fire TV's own Start time setting still decides when it appears.\n\n"
+                  "In the platform-tools folder on your PC, first note your current screensaver so you can go back:\n\n"
+                  "adb shell settings get secure screensaver_components\n\n"
+                  "Then switch to YaMa's:\n\n"
+                  "adb shell settings put secure screensaver_components app.yama.launcher/me.efesser.flauncher.YamaDream\n\n"
+                  "To go back, run the same 'put' command with the value you noted.\n\n"
+                  "A Fire OS update may switch it back; just run the command again.",
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("OK")),
+              ],
+            ),
+          ),
         ),
 
         const YamaSectionHeader("Idle mode"),
