@@ -40,7 +40,7 @@ A glassy, soft home screen for **Android TV and Fire TV**, built on the open-sou
 - Built-in looks: YaMa Glass, Frosted Icons, Bubble, Night Calm, Poster (apps at bottom), Classic FLauncher
 - Save your look to a file and load it back (`Android/data/app.yama.launcher/files/yama-theme.json`)
 - Idle mode: after a set time the apps fade away, leaving the wallpaper and clock; the first button press only wakes the screen
-- **Screensaver**: YaMa can replace the Fire TV screensaver with your wallpapers and a large clock (Themes & idle → Screensaver; switched on once with ADB)
+- **Screensaver**: YaMa can replace the Fire TV screensaver with your wallpapers, or its own pictures (chosen with the file browser, another file explorer app or ADB), and a large clock (Themes & idle → Screensaver; switched on once with ADB)
 - **Home button**: an optional accessibility helper opens YaMa whenever the Fire TV home screen comes up (Settings → Home button; switched on once with ADB)
 
 ## Building

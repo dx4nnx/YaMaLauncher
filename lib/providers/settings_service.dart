@@ -136,6 +136,10 @@ class SettingsService extends ChangeNotifier {
   String get redditSubreddits => _string(YamaKeys.redditSubreddits);
   String get webImageUrls => _string(YamaKeys.webImageUrls);
 
+  /// "wallpaper" = same pictures as the home screen, "own" = its own list.
+  bool get screensaverOwnPictures => _string(YamaKeys.screensaverSource) == "own";
+  /// Seconds per picture in the screensaver (0 = same as the wallpaper).
+  int get screensaverInterval => _int(YamaKeys.screensaverInterval);
   int get idleTimeout => _int(YamaKeys.idleTimeout);
   int get idleOpacity => _int(YamaKeys.idleOpacity);
 

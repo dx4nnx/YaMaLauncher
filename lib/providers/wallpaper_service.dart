@@ -117,6 +117,84 @@ class WallpaperService extends ChangeNotifier {
 
   Timer? _exportTimer;
 
+  // The screensaver's own pictures: copies kept by YaMa, plus a folder ADB
+  // or a file manager can copy into (Android/data/app.yama.launcher/files/screensaver).
+  Directory? _screensaverDirectory;
+  Directory? _screensaverDeviceFolder;
+  List<File> _screensaverPictures = [];
+
+  int get screensaverPictureCount => _screensaverPictures.length;
+  String? get screensaverFolderPath => _screensaverDeviceFolder?.path;
+
+  static final RegExp _pictureName = RegExp(r"\.(jpe?g|png|webp|gif)$", caseSensitive: false);
+
+  Future<void> reloadScreensaverPictures() async {
+    final List<File> files = [];
+    final Directory? own = _screensaverDirectory;
+    if (own != null && await own.exists()) {
+      files.addAll(own.listSync().whereType<File>());
+    }
+    final Directory? device = _screensaverDeviceFolder;
+    if (device != null && await device.exists()) {
+      files.addAll(device.listSync(recursive: true).whereType<File>().where((f) => _pictureName.hasMatch(f.path)));
+    }
+    _screensaverPictures = files..sort((a, b) => a.path.compareTo(b.path));
+    notifyListeners();
+  }
+
+  Future<Directory> _ownScreensaverDirectory() async {
+    final Directory directory = _screensaverDirectory!;
+    if (!await directory.exists()) await directory.create(recursive: true);
+    return directory;
+  }
+
+  /// Copies one picture (chosen in YaMa's file browser) into the screensaver.
+  Future<void> addScreensaverPicture(String path) async {
+    final Directory directory = await _ownScreensaverDirectory();
+    await File(path).copy("${directory.path}/pic_${DateTime.now().millisecondsSinceEpoch}");
+    await _useOwnScreensaverPictures();
+  }
+
+  /// Copies every picture in a folder into the screensaver.
+  Future<int> addScreensaverFolder(String folderPath) async {
+    final Directory directory = await _ownScreensaverDirectory();
+    final List<File> pictures =
+        Directory(folderPath).listSync().whereType<File>().where((f) => _pictureName.hasMatch(f.path)).toList();
+    final int stamp = DateTime.now().millisecondsSinceEpoch;
+    for (int i = 0; i < pictures.length; i++) {
+      await pictures[i].copy("${directory.path}/pic_${stamp}_$i");
+    }
+    await _useOwnScreensaverPictures();
+    return pictures.length;
+  }
+
+  /// Picks pictures with another app (the Android picker or a file explorer).
+  Future<int> addScreensaverPicturesWithPicker() async {
+    await _ensureFileExplorer();
+    final List<XFile> picked = await ImagePicker().pickMultiImage();
+    if (picked.isEmpty) return 0;
+    final Directory directory = await _ownScreensaverDirectory();
+    final int stamp = DateTime.now().millisecondsSinceEpoch;
+    for (int i = 0; i < picked.length; i++) {
+      await File("${directory.path}/pic_${stamp}_$i").writeAsBytes(await picked[i].readAsBytes(), flush: true);
+    }
+    await _useOwnScreensaverPictures();
+    return picked.length;
+  }
+
+  Future<void> clearScreensaverPictures() async {
+    final Directory? directory = _screensaverDirectory;
+    if (directory != null && await directory.exists()) {
+      await directory.delete(recursive: true);
+    }
+    await reloadScreensaverPictures();
+  }
+
+  Future<void> _useOwnScreensaverPictures() async {
+    await reloadScreensaverPictures();
+    await _settingsService.setValue(YamaKeys.screensaverSource, "own");
+  }
+
   /// Opens YaMa's screensaver straight away, after saving its settings.
   Future<void> previewScreensaver() async {
     _exportTimer?.cancel();
@@ -143,7 +221,9 @@ class WallpaperService extends ChangeNotifier {
       final SettingsService s = _settingsService;
       final List<String> local = [];
       final List<String> remote = [];
-      switch (mode) {
+      if (s.screensaverOwnPictures) {
+        local.addAll(_screensaverPictures.map((file) => file.path));
+      } else switch (mode) {
         case WallpaperMode.slideshow:
           local.addAll(_slides.map((file) => file.path));
         case WallpaperMode.image:
@@ -165,7 +245,7 @@ class WallpaperService extends ChangeNotifier {
         "local": local,
         "remote": remote.take(200).toList(),
         "colors": colors,
-        "interval": s.slideshowInterval,
+        "interval": s.screensaverInterval > 0 ? s.screensaverInterval : s.slideshowInterval,
         "transition": s.slideshowTransition.name,
         "dim": s.wallpaperDim,
         "shadow": s.wallpaperShadow,
@@ -198,15 +278,19 @@ class WallpaperService extends ChangeNotifier {
     final directory = await getApplicationDocumentsDirectory();
     _wallpaperFile = File("${directory.path}/wallpaper");
     _slideshowDirectory = Directory("${directory.path}/slideshow");
+    _screensaverDirectory = Directory("${directory.path}/screensaver_pictures");
     try {
       final Directory? external = await getExternalStorageDirectory();
       if (external != null) {
         _deviceFolder = Directory("${external.path}/wallpapers");
         await _deviceFolder!.create(recursive: true);
+        _screensaverDeviceFolder = Directory("${external.path}/screensaver");
+        await _screensaverDeviceFolder!.create(recursive: true);
       }
     } catch (_) {
       _deviceFolder = null;
     }
+    await reloadScreensaverPictures();
 
     if (await _wallpaperFile!.exists()) {
       _wallpaper = FileImage(_wallpaperFile!);

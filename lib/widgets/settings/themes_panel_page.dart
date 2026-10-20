@@ -22,6 +22,7 @@ import 'package:flauncher/models/yama_settings.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/settings/yama_controls.dart';
+import 'package:flauncher/widgets/yama_file_browser.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -35,6 +36,7 @@ class ThemesPanelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final SettingsService s = context.watch<SettingsService>();
+    final WallpaperService wallpaper = context.watch<WallpaperService>();
 
     return YamaSettingsPage(
       title: "Themes & idle",
@@ -138,10 +140,102 @@ class ThemesPanelPage extends StatelessWidget {
         ),
 
         const YamaSectionHeader("Screensaver"),
+        YamaDropdown<bool>(
+          label: "Screensaver shows",
+          icon: Icons.collections_outlined,
+          value: s.screensaverOwnPictures,
+          items: {
+            false: "Same pictures as the wallpaper",
+            true: "My own pictures (${wallpaper.screensaverPictureCount})",
+          },
+          onChanged: (own) => s.setValue(YamaKeys.screensaverSource, own ? "own" : "wallpaper"),
+        ),
+        if (s.screensaverOwnPictures) ...[
+          YamaNavButton(
+            icon: Icons.drive_folder_upload_outlined,
+            label: "Add a folder of pictures",
+            onPressed: () async {
+              final String? folder =
+                  await showYamaFileBrowser(context, title: "Choose a folder for the screensaver", mode: BrowseMode.folder);
+              if (folder == null) return;
+              final int added = await wallpaper.addScreensaverFolder(folder);
+              if (context.mounted) _toast(context, "Added $added picture${added == 1 ? "" : "s"} to the screensaver");
+            },
+          ),
+          YamaNavButton(
+            icon: Icons.add_photo_alternate_outlined,
+            label: "Add one picture",
+            onPressed: () async {
+              final String? path = await showYamaFileBrowser(context, title: "Choose a picture for the screensaver");
+              if (path == null) return;
+              await wallpaper.addScreensaverPicture(path);
+              if (context.mounted) _toast(context, "Added to the screensaver");
+            },
+          ),
+          YamaNavButton(
+            icon: Icons.apps_outlined,
+            label: "Add pictures with another app",
+            onPressed: () async {
+              try {
+                final int added = await wallpaper.addScreensaverPicturesWithPicker();
+                if (added > 0 && context.mounted) {
+                  _toast(context, "Added $added picture${added == 1 ? "" : "s"} to the screensaver");
+                }
+              } on NoFileExplorerException {
+                if (context.mounted) _toast(context, "No file explorer app found", error: true);
+              }
+            },
+          ),
+          if (wallpaper.screensaverFolderPath != null)
+            YamaNavButton(
+              icon: Icons.usb,
+              label: "Copy pictures with ADB",
+              onPressed: () => showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("Copy screensaver pictures with ADB"),
+                  content: SelectableText(
+                    "In the platform-tools folder on your PC, run:\n\n"
+                    "adb push \"C:\\path\\to\\your\\pictures\\.\" ${wallpaper.screensaverFolderPath}/\n\n"
+                    "Then choose \"Reload screensaver pictures\".",
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("OK")),
+                  ],
+                ),
+              ),
+            ),
+          YamaNavButton(
+            icon: Icons.refresh,
+            label: "Reload screensaver pictures",
+            onPressed: () async {
+              await wallpaper.reloadScreensaverPictures();
+              if (context.mounted) {
+                _toast(context, "${wallpaper.screensaverPictureCount} screensaver picture${wallpaper.screensaverPictureCount == 1 ? "" : "s"}");
+              }
+            },
+          ),
+          if (wallpaper.screensaverPictureCount > 0)
+            YamaNavButton(
+              icon: Icons.delete_outline,
+              label: "Remove the pictures added here",
+              onPressed: () => wallpaper.clearScreensaverPictures(),
+            ),
+        ],
+        YamaDropdown<int>(
+          label: "Screensaver changes picture every",
+          icon: Icons.timer_outlined,
+          value: s.screensaverInterval,
+          items: const {
+            0: "Same as the wallpaper", 15: "15 seconds", 30: "30 seconds", 60: "1 minute",
+            120: "2 minutes", 300: "5 minutes", 900: "15 minutes",
+          },
+          onChanged: (v) => s.setValue(YamaKeys.screensaverInterval, v),
+        ),
         YamaNavButton(
           icon: Icons.slideshow_outlined,
           label: "Preview YaMa screensaver",
-          onPressed: () => context.read<WallpaperService>().previewScreensaver(),
+          onPressed: () => wallpaper.previewScreensaver(),
         ),
         YamaNavButton(
           icon: Icons.usb,

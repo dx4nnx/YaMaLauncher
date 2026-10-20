@@ -92,6 +92,8 @@ abstract class YamaKeys {
   static const accentColor = "accent_color";
 
   // Idle
+  static const screensaverSource = "screensaver_source";
+  static const screensaverInterval = "screensaver_interval";
   static const idleTimeout = "idle_timeout";
   static const idleOpacity = "idle_opacity";
 }
@@ -150,6 +152,8 @@ const Map<String, Object> appearanceDefaults = {
   YamaKeys.textScale: 100,
   YamaKeys.accentColor: 0xFF9DB8FF,
 
+  YamaKeys.screensaverSource: "wallpaper",
+  YamaKeys.screensaverInterval: 0,
   YamaKeys.idleTimeout: 0,
   YamaKeys.idleOpacity: 0,
 };
