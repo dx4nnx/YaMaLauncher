@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Only told about window changes from the Fire TV home screen apps. -->
+<!-- Told about screen (window) changes only; the service decides which
+     ones are the Fire TV home screen. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault"
     android:canRetrieveWindowContent="false"
     android:description="@string/yama_home_service_description"
-    android:notificationTimeout="50"
-    android:packageNames="com.amazon.tv.launcher,com.amazon.firehomestarter" />
+    android:notificationTimeout="50" />

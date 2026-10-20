@@ -22,6 +22,12 @@ import android.accessibilityservice.AccessibilityService;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ResolveInfo;
+import android.util.Log;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.accessibility.AccessibilityEvent;
@@ -37,7 +43,34 @@ public class YamaHomeService extends AccessibilityService {
     static final String KEY_ENABLED = "enabled";
     static final String KEY_PAUSE_UNTIL = "pause_until";
 
+    private static final String TAG = "YamaHome";
+
     private long lastLaunch = 0;
+    private final Set<String> homePackages = new HashSet<>();
+
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        findHomePackages();
+        Log.i(TAG, "Home button helper started; watching " + homePackages);
+    }
+
+    /** Every app that answers the Home button, except YaMa itself. */
+    private void findHomePackages() {
+        homePackages.clear();
+        homePackages.add("com.amazon.tv.launcher");
+        homePackages.add("com.amazon.firehomestarter");
+        try {
+            Intent home = new Intent(Intent.ACTION_MAIN);
+            home.addCategory(Intent.CATEGORY_HOME);
+            List<ResolveInfo> handlers = getPackageManager().queryIntentActivities(home, 0);
+            for (ResolveInfo info : handlers) {
+                if (info.activityInfo != null) homePackages.add(info.activityInfo.packageName);
+            }
+        } catch (Exception ignored) {
+        }
+        homePackages.remove(getPackageName());
+    }
 
     static SharedPreferences prefs(Context context) {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -56,10 +89,14 @@ public class YamaHomeService extends AccessibilityService {
         CharSequence pkg = event.getPackageName();
         if (pkg == null) return;
         String name = pkg.toString();
-        if (!name.equals("com.amazon.tv.launcher") && !name.equals("com.amazon.firehomestarter")) return;
+        Log.d(TAG, "Screen: " + name + " / " + event.getClassName());
+        if (!homePackages.contains(name)) return;
 
         SharedPreferences prefs = prefs(this);
-        if (!prefs.getBoolean(KEY_ENABLED, true)) return;
+        if (!prefs.getBoolean(KEY_ENABLED, true)) {
+            Log.d(TAG, "Home button redirect is switched off in YaMa");
+            return;
+        }
         if (System.currentTimeMillis() < prefs.getLong(KEY_PAUSE_UNTIL, 0)) return;
 
         long now = SystemClock.elapsedRealtime();
@@ -73,7 +110,9 @@ public class YamaHomeService extends AccessibilityService {
                 | Intent.FLAG_ACTIVITY_NO_ANIMATION);
         try {
             startActivity(intent);
-        } catch (Exception ignored) {
+            Log.i(TAG, "Fire TV home (" + name + ") opened; switching to YaMa");
+        } catch (Exception e) {
+            Log.w(TAG, "Couldn't open YaMa", e);
         }
     }
 
