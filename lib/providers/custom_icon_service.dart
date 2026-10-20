@@ -17,25 +17,34 @@
  */
 
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flauncher/flauncher_channel.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Custom app icons, stored as `<package name>.png|jpg|jpeg|webp` in a
-/// folder that ADB and file managers can reach:
+/// Custom app icons, kept in a folder that ADB and file managers can reach:
 /// `Android/data/app.yama.launcher/files/icons`.
+///
+/// A picture is used for an app when its name is either the app's package
+/// name (`com.netflix.ninja.png`) or the app's name (`netflix.png`,
+/// `prime-video.png`; case, spaces and dashes don't matter).
 class CustomIconService extends ChangeNotifier {
   static const List<String> _extensions = ["png", "jpg", "jpeg", "webp"];
 
+  /// Words that are often added to icon file names (e.g. youtube-logo.png).
+  static const List<String> _noiseWords = ["color", "colour", "icon", "logo", "banner", "app", "tv", "android"];
+
   final FLauncherChannel _channel;
   Directory? _folder;
-  Map<String, File> _icons = {};
-  final Map<String, int> _versions = {};
+
+  /// File base name (exactly as written) -> file.
+  Map<String, File> _byExactName = {};
+
+  /// Simplified file base name -> file.
+  Map<String, File> _bySimpleName = {};
+
+  int _generation = 0;
 
   CustomIconService(this._channel) {
     _init();
@@ -44,15 +53,28 @@ class CustomIconService extends ChangeNotifier {
   /// Folder to copy icons into with ADB, or null if storage isn't available.
   String? get folderPath => _folder?.path;
 
-  int get count => _icons.length;
+  int get count => _byExactName.length;
 
-  bool hasIcon(String packageName) => _icons.containsKey(packageName);
+  /// Changes whenever any icon changes, so cards know to redraw.
+  int get generation => _generation;
 
-  /// Changes whenever this app's icon changes, so cards know to redraw.
-  int versionFor(String packageName) => _versions[packageName] ?? 0;
+  static String simplify(String name) => name.toLowerCase().replaceAll(RegExp(r"[^a-z0-9]"), "");
 
-  ImageProvider? iconFor(String packageName) {
-    final File? file = _icons[packageName];
+  static String _withoutNoise(String name) {
+    String result = name.toLowerCase();
+    for (final String word in _noiseWords) {
+      result = result.replaceAll(RegExp("(^|[^a-z0-9])$word(?=[^a-z0-9]|\$)"), " ");
+    }
+    return simplify(result);
+  }
+
+  File? _fileFor(String packageName, String appName) =>
+      _byExactName[packageName] ?? _bySimpleName[simplify(appName)] ?? _bySimpleName[simplify(packageName)];
+
+  bool hasIcon(String packageName, String appName) => _fileFor(packageName, appName) != null;
+
+  ImageProvider? iconFor(String packageName, String appName) {
+    final File? file = _fileFor(packageName, appName);
     return file == null ? null : FileImage(file);
   }
 
@@ -74,66 +96,95 @@ class CustomIconService extends ChangeNotifier {
   /// Re-reads the icons folder (after copying icons over with ADB).
   Future<int> reload() async {
     final Directory? folder = _folder;
-    final Map<String, File> found = {};
+    final Map<String, File> exact = {};
+    final Map<String, File> simple = {};
     if (folder != null && await folder.exists()) {
       for (final FileSystemEntity entity in folder.listSync()) {
         if (entity is! File) continue;
         final String name = entity.uri.pathSegments.last;
         final int dot = name.lastIndexOf(".");
         if (dot <= 0) continue;
-        final String extension = name.substring(dot + 1).toLowerCase();
-        if (!_extensions.contains(extension)) continue;
-        found[name.substring(0, dot)] = entity;
+        if (!_extensions.contains(name.substring(dot + 1).toLowerCase())) continue;
+        final String base = name.substring(0, dot);
+        exact[base] = entity;
+        simple.putIfAbsent(simplify(base), () => entity);
+        simple.putIfAbsent(_withoutNoise(base), () => entity);
       }
     }
     // Drop cached pictures so replaced files show their new image.
-    for (final File file in {..._icons.values, ...found.values}) {
+    for (final File file in {..._byExactName.values, ...exact.values}) {
       FileImage(file).evict();
     }
-    for (final String package in {..._icons.keys, ...found.keys}) {
-      _versions[package] = versionFor(package) + 1;
-    }
-    _icons = found;
+    _byExactName = exact;
+    _bySimpleName = simple..remove("");
+    _generation++;
     notifyListeners();
-    return found.length;
+    return exact.length;
   }
 
-  /// Lets the person pick a picture with their file explorer / gallery app.
+  /// How many of [apps] (package name, app name) now have a custom icon.
+  int matchCount(Iterable<({String packageName, String name})> apps) =>
+      apps.where((app) => hasIcon(app.packageName, app.name)).length;
+
+  /// Lets the person pick a picture with another app (e.g. Cx File Explorer).
   /// Returns false if they backed out.
   Future<bool> pickIcon(String packageName) async {
-    if (!await _channel.checkForGetContentAvailability()) {
-      throw NoFileExplorerException();
-    }
-    final XFile? picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked == null) {
+    final List<String> picked = await _channel.pickWithApp();
+    if (picked.isEmpty) {
       return false;
     }
-    final Uint8List bytes = await picked.readAsBytes();
-    final String lower = picked.name.toLowerCase();
-    final String extension = _extensions.firstWhere((e) => lower.endsWith(".$e"), orElse: () => "png");
-    await _removeFiles(packageName);
-    final File file = File("${_folder!.path}/$packageName.$extension");
-    await file.writeAsBytes(bytes, flush: true);
-    await reload();
+    await setIconFromFile(packageName, picked.first);
     return true;
   }
 
-  /// Uses a picture chosen in YaMa's own file browser.
+  /// Uses a picture chosen in YaMa's own file browser or another app.
   Future<void> setIconFromFile(String packageName, String path) async {
     final String lower = path.toLowerCase();
     final String extension = _extensions.firstWhere((e) => lower.endsWith(".$e"), orElse: () => "png");
     final Uint8List bytes = await File(path).readAsBytes();
-    await _removeFiles(packageName);
+    await _removeExact(packageName);
     await File("${_folder!.path}/$packageName.$extension").writeAsBytes(bytes, flush: true);
     await reload();
   }
 
-  Future<void> resetIcon(String packageName) async {
-    await _removeFiles(packageName);
+  /// Copies every picture in a folder into the icons folder, keeping names,
+  /// so `youtube.png` etc. are matched to apps by name.
+  Future<int> importFolder(String folderPath) async {
+    final List<File> pictures = Directory(folderPath).listSync().whereType<File>().where((file) {
+      final String lower = file.path.toLowerCase();
+      return _extensions.any((e) => lower.endsWith(".$e"));
+    }).toList();
+    for (final File picture in pictures) {
+      final String name = picture.uri.pathSegments.last;
+      await picture.copy("${_folder!.path}/$name");
+    }
+    await reload();
+    return pictures.length;
+  }
+
+  /// Copies pictures picked with another app, keeping their names.
+  Future<int> importWithApp() async {
+    final List<String> picked = await _channel.pickWithApp(multiple: true);
+    for (final String path in picked) {
+      final File file = File(path);
+      await file.copy("${_folder!.path}/${file.uri.pathSegments.last}");
+    }
+    await reload();
+    return picked.length;
+  }
+
+  Future<void> resetIcon(String packageName, String appName) async {
+    await _removeExact(packageName);
+    // Also remove a picture that matched by the app's name.
+    final File? byName = _bySimpleName[simplify(appName)];
+    if (byName != null && await byName.exists()) {
+      FileImage(byName).evict();
+      await byName.delete();
+    }
     await reload();
   }
 
-  Future<void> _removeFiles(String packageName) async {
+  Future<void> _removeExact(String packageName) async {
     final Directory? folder = _folder;
     if (folder == null) return;
     for (final String extension in _extensions) {

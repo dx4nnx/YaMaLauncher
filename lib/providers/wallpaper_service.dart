@@ -28,7 +28,6 @@ import 'package:flauncher/models/yama_settings.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 class WallpaperService extends ChangeNotifier {
@@ -170,13 +169,12 @@ class WallpaperService extends ChangeNotifier {
 
   /// Picks pictures with another app (the Android picker or a file explorer).
   Future<int> addScreensaverPicturesWithPicker() async {
-    await _ensureFileExplorer();
-    final List<XFile> picked = await ImagePicker().pickMultiImage();
+    final List<String> picked = await _fLauncherChannel.pickWithApp(multiple: true);
     if (picked.isEmpty) return 0;
     final Directory directory = await _ownScreensaverDirectory();
     final int stamp = DateTime.now().millisecondsSinceEpoch;
     for (int i = 0; i < picked.length; i++) {
-      await File("${directory.path}/pic_${stamp}_$i").writeAsBytes(await picked[i].readAsBytes(), flush: true);
+      await File(picked[i]).copy("${directory.path}/pic_${stamp}_$i");
     }
     await _useOwnScreensaverPictures();
     return picked.length;
@@ -601,15 +599,9 @@ class WallpaperService extends ChangeNotifier {
   Future<void> pickWallpaper() async {
     await _ensureFileExplorer();
 
-    final imagePicker = ImagePicker();
-    final pickedFile = await imagePicker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      Uint8List bytes = await pickedFile.readAsBytes();
-      await _wallpaperFile!.writeAsBytes(bytes);
-
-      _wallpaper = MemoryImage(bytes);
-      await _settingsService.setValue(YamaKeys.wallpaperMode, WallpaperMode.image);
-      notifyListeners();
+    final List<String> picked = await _fLauncherChannel.pickWithApp();
+    if (picked.isNotEmpty) {
+      await setWallpaperFromFile(picked.first);
     }
   }
 
@@ -649,7 +641,7 @@ class WallpaperService extends ChangeNotifier {
   Future<int> addSlideshowPictures() async {
     await _ensureFileExplorer();
 
-    final List<XFile> picked = await ImagePicker().pickMultiImage();
+    final List<String> picked = await _fLauncherChannel.pickWithApp(multiple: true);
     if (picked.isEmpty) {
       return 0;
     }
@@ -660,8 +652,7 @@ class WallpaperService extends ChangeNotifier {
     }
     final int stamp = DateTime.now().millisecondsSinceEpoch;
     for (int i = 0; i < picked.length; i++) {
-      final Uint8List bytes = await picked[i].readAsBytes();
-      await File("${directory.path}/slide_${stamp}_$i").writeAsBytes(bytes);
+      await File(picked[i]).copy("${directory.path}/slide_${stamp}_$i");
     }
 
     await _loadSlides();

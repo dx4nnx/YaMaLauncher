@@ -54,6 +54,80 @@ import java.util.concurrent.Future;
 
 public class MainActivity extends FlutterActivity
 {
+    private static final int PICK_WITH_APP = 4711;
+    private MethodChannel.Result pendingPick;
+
+    /** Shows a chooser of apps that can provide pictures (Cx File Explorer etc). */
+    private void pickWithApp(boolean multiple, MethodChannel.Result result) {
+        if (pendingPick != null) {
+            pendingPick.success(new ArrayList<String>());
+        }
+        pendingPick = result;
+        Intent get = new Intent(Intent.ACTION_GET_CONTENT);
+        get.setType("image/*");
+        get.addCategory(Intent.CATEGORY_OPENABLE);
+        get.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple);
+        try {
+            startActivityForResult(Intent.createChooser(get, "Choose pictures with"), PICK_WITH_APP);
+        } catch (Exception e) {
+            pendingPick = null;
+            result.success(new ArrayList<String>());
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PICK_WITH_APP) return;
+        MethodChannel.Result result = pendingPick;
+        pendingPick = null;
+        if (result == null) return;
+
+        ArrayList<String> paths = new ArrayList<>();
+        if (resultCode == RESULT_OK && data != null) {
+            ArrayList<Uri> uris = new ArrayList<>();
+            if (data.getClipData() != null) {
+                for (int i = 0; i < data.getClipData().getItemCount(); i++) {
+                    uris.add(data.getClipData().getItemAt(i).getUri());
+                }
+            } else if (data.getData() != null) {
+                uris.add(data.getData());
+            }
+            java.io.File folder = new java.io.File(getCacheDir(), "picked/" + System.nanoTime());
+            folder.mkdirs();
+            for (int i = 0; i < uris.size(); i++) {
+                Uri uri = uris.get(i);
+                String name = displayName(uri);
+                if (name == null || name.isEmpty()) {
+                    String ext = android.webkit.MimeTypeMap.getSingleton()
+                            .getExtensionFromMimeType(getContentResolver().getType(uri));
+                    name = "picture_" + i + "." + (ext != null ? ext : "png");
+                }
+                java.io.File target = new java.io.File(folder, name.replaceAll("[\\\\/:*?\"<>|]", "_"));
+                try (java.io.InputStream in = getContentResolver().openInputStream(uri);
+                     java.io.OutputStream out = new java.io.FileOutputStream(target)) {
+                    if (in == null) continue;
+                    byte[] buffer = new byte[16384];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
+                    paths.add(target.getAbsolutePath());
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        result.success(paths);
+    }
+
+    private String displayName(Uri uri) {
+        if ("file".equals(uri.getScheme())) return uri.getLastPathSegment();
+        try (android.database.Cursor cursor = getContentResolver().query(uri,
+                new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) return cursor.getString(0);
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
     private final String METHOD_CHANNEL = "me.efesser.flauncher/method";
     private final String APPS_EVENT_CHANNEL = "me.efesser.flauncher/event_apps";
     private final String NETWORK_EVENT_CHANNEL = "me.efesser.flauncher/event_network";
@@ -80,6 +154,10 @@ public class MainActivity extends FlutterActivity
                 case "isDefaultLauncher" -> result.success(isDefaultLauncher());
                 case "checkForGetContentAvailability" -> result.success(checkForGetContentAvailability());
                 case "startAmbientMode" -> result.success(startAmbientMode());
+                case "pickWithApp" -> {
+                    Boolean multiple = call.argument("multiple");
+                    pickWithApp(multiple != null && multiple, result);
+                }
                 case "homeButtonStatus" -> {
                     java.util.Map<String, Object> status = new java.util.HashMap<>();
                     status.put("serviceOn", YamaHomeService.isServiceOn(this));

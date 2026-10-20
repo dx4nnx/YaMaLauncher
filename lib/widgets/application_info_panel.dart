@@ -167,7 +167,7 @@ class ApplicationInfoPanel extends StatelessWidget
                        children: [
                          const Icon(Icons.apps_outlined),
                          Container(width: 8),
-                         Flexible(child: Text("Change icon with another app", style: Theme.of(context).textTheme.bodyMedium)),
+                         Flexible(child: Text("Change icon with another app (e.g. Cx File Explorer)", style: Theme.of(context).textTheme.bodyMedium)),
                        ],
                      ),
                      onPressed: () async {
@@ -176,12 +176,6 @@ class ApplicationInfoPanel extends StatelessWidget
                          if (changed && context.mounted) {
                            Navigator.of(context).pop(ApplicationInfoPanelResult.none);
                          }
-                       } on NoFileExplorerException {
-                         if (context.mounted) {
-                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                             content: Text("No file explorer found. Install one (e.g. Cx File Explorer), or copy icons with ADB."),
-                           ));
-                         }
                        } catch (e) {
                          if (context.mounted) {
                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Couldn't use that picture ($e)")));
@@ -189,7 +183,7 @@ class ApplicationInfoPanel extends StatelessWidget
                        }
                      },
                    ),
-                   if (context.watch<CustomIconService>().hasIcon(application.packageName))
+                   if (context.watch<CustomIconService>().hasIcon(application.packageName, application.name))
                      TextButton(
                        child: Row(
                          children: [
@@ -199,7 +193,7 @@ class ApplicationInfoPanel extends StatelessWidget
                          ],
                        ),
                        onPressed: () async {
-                         await context.read<CustomIconService>().resetIcon(application.packageName);
+                         await context.read<CustomIconService>().resetIcon(application.packageName, application.name);
                          if (context.mounted) {
                            Navigator.of(context).pop(ApplicationInfoPanelResult.none);
                          }

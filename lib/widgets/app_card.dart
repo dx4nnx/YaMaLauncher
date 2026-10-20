@@ -127,7 +127,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     ));
 
     // Redraw when this app's custom icon is added, replaced or reset.
-    context.select<CustomIconService, int>((s) => s.versionFor(widget.application.packageName));
+    context.select<CustomIconService, int>((s) => s.generation);
 
     final CardShape shape = look.shape;
     final bool iconOnly = shape != CardShape.banner;
@@ -366,7 +366,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     App app = widget.application;
 
     // A custom icon (picked on the TV or copied with ADB) replaces the app's own.
-    final ImageProvider? custom = context.read<CustomIconService>().iconFor(app.packageName);
+    final ImageProvider? custom = context.read<CustomIconService>().iconFor(app.packageName, app.name);
     if (custom != null) {
       return Ink.image(
         image: custom,
@@ -546,7 +546,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       builder: (context) => ApplicationInfoPanel(
         category: widget.category,
         application: widget.application,
-        applicationIcon: context.read<CustomIconService>().iconFor(widget.application.packageName),
+        applicationIcon: context.read<CustomIconService>().iconFor(widget.application.packageName, widget.application.name),
       ),
     );
     if (result == ApplicationInfoPanelResult.reorderApp) {

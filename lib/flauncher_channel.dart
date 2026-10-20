@@ -77,6 +77,13 @@ class FLauncherChannel {
   /// Opens the Fire TV home screen and lets it stay for a minute.
   Future<bool> openFireTvHome() async => await _methodChannel.invokeMethod("openFireTvHome") == true;
 
+  /// Lets the person pick pictures with an app of their choice (Cx File
+  /// Explorer etc). Returns local copies of the picked files.
+  Future<List<String>> pickWithApp({bool multiple = false}) async {
+    final List<dynamic>? paths = await _methodChannel.invokeMethod("pickWithApp", {"multiple": multiple});
+    return paths?.cast<String>() ?? const [];
+  }
+
   /// Opens YaMa's screensaver straight away (any button closes it).
   Future<void> previewScreensaver() async => await _methodChannel.invokeMethod("previewScreensaver");
 

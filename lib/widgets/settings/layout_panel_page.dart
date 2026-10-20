@@ -18,7 +18,9 @@
 
 import 'package:flauncher/models/layout_options.dart';
 import 'package:flauncher/models/yama_settings.dart';
+import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/custom_icon_service.dart';
+import 'package:flauncher/widgets/yama_file_browser.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/settings/yama_controls.dart';
 import 'package:flutter/material.dart';
@@ -182,9 +184,36 @@ class LayoutPanelPage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 0, 8, 4),
           child: Text(
             "To change one app's icon, hold Select on the app and choose Change icon. "
-            "${icons.count} custom icon${icons.count == 1 ? "" : "s"} in use.",
+            "Icon files named after an app (youtube.png, downloader.png, prime-video.png) are matched automatically. "
+            "${_matched(context, icons)} of your apps have a custom icon.",
             style: Theme.of(context).textTheme.bodySmall,
           ),
+        ),
+        YamaNavButton(
+          icon: Icons.drive_folder_upload_outlined,
+          label: "Import icons from a folder",
+          onPressed: () async {
+            final String? folder = await showYamaFileBrowser(context, title: "Choose your icons folder", mode: BrowseMode.folder);
+            if (folder == null) return;
+            final int copied = await icons.importFolder(folder);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text("Imported $copied picture${copied == 1 ? "" : "s"}; ${_matched(context, icons)} apps now have a custom icon"),
+              ));
+            }
+          },
+        ),
+        YamaNavButton(
+          icon: Icons.apps_outlined,
+          label: "Import icons with another app",
+          onPressed: () async {
+            final int copied = await icons.importWithApp();
+            if (copied > 0 && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text("Imported $copied picture${copied == 1 ? "" : "s"}; ${_matched(context, icons)} apps now have a custom icon"),
+              ));
+            }
+          },
         ),
         if (icons.folderPath != null)
           YamaNavButton(
@@ -195,13 +224,13 @@ class LayoutPanelPage extends StatelessWidget {
               builder: (context) => AlertDialog(
                 title: const Text("Copy icons with ADB"),
                 content: SelectableText(
-                  "Name each picture after the app's package name, for example "
-                  "com.netflix.ninja.png or com.amazon.avod.thirdpartyclient.jpg "
-                  "(the package name is shown when you hold Select on an app).\n\n"
-                  "Then, in the platform-tools folder on your PC, run:\n\n"
-                  "adb push \"C:\\path\\to\\icons\\.\" ${icons.folderPath}/\n\n"
-                  "and choose \"Reload custom icons\". PNG, JPG and WEBP work. "
-                  "Wide pictures suit banner cards; square ones suit square or round cards.",
+                  "Name each picture after the app, e.g. youtube.png, downloader.png or prime-video.png "
+                  "(or its package name, shown when you hold Select on an app).\n\n"
+                  "From your PC (platform-tools folder):\n"
+                  "adb push \"C:\\Users\\you\\Downloads\\icons\\.\" ${icons.folderPath}/\n\n"
+                  "Icons already on the TV's Downloads folder:\n"
+                  "adb shell cp /sdcard/Download/*.png ${icons.folderPath}/\n\n"
+                  "Then choose \"Reload custom icons\". PNG, JPG and WEBP work.",
                 ),
                 actions: [
                   TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("OK")),
@@ -272,4 +301,8 @@ class LayoutPanelPage extends StatelessWidget {
   static const Map<int, String> _margins = {
     0: "0", 16: "16", 32: "32", 48: "48", 64: "64", 96: "96", 128: "128", 192: "192",
   };
+
+  static int _matched(BuildContext context, CustomIconService icons) => icons.matchCount(
+        context.read<AppsService>().applications.map((app) => (packageName: app.packageName, name: app.name)),
+      );
 }
