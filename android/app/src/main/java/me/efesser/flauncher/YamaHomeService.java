@@ -47,12 +47,14 @@ public class YamaHomeService extends AccessibilityService {
 
     private long lastLaunch = 0;
     private final Set<String> homePackages = new HashSet<>();
+    /** Exact screen (activity) names that answer the Home button. */
+    private final Set<String> homeActivities = new HashSet<>();
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         findHomePackages();
-        Log.i(TAG, "Home button helper started; watching " + homePackages);
+        Log.i(TAG, "Home button helper started; watching " + homePackages + " " + homeActivities);
     }
 
     /** Every app that answers the Home button, except YaMa itself. */
@@ -65,7 +67,10 @@ public class YamaHomeService extends AccessibilityService {
             home.addCategory(Intent.CATEGORY_HOME);
             List<ResolveInfo> handlers = getPackageManager().queryIntentActivities(home, 0);
             for (ResolveInfo info : handlers) {
-                if (info.activityInfo != null) homePackages.add(info.activityInfo.packageName);
+                if (info.activityInfo != null) {
+                    homePackages.add(info.activityInfo.packageName);
+                    homeActivities.add(info.activityInfo.name);
+                }
             }
         } catch (Exception ignored) {
         }
@@ -89,8 +94,12 @@ public class YamaHomeService extends AccessibilityService {
         CharSequence pkg = event.getPackageName();
         if (pkg == null) return;
         String name = pkg.toString();
-        Log.d(TAG, "Screen: " + name + " / " + event.getClassName());
+        String screen = event.getClassName() == null ? "" : event.getClassName().toString();
+        Log.d(TAG, "Screen: " + name + " / " + screen);
         if (!homePackages.contains(name)) return;
+        // Fire TV's Settings, search, profiles etc. live in the same app as
+        // its home screen, so only react to the home screen itself.
+        if (!isHomeScreen(screen)) return;
 
         SharedPreferences prefs = prefs(this);
         if (!prefs.getBoolean(KEY_ENABLED, true)) {
@@ -114,6 +123,17 @@ public class YamaHomeService extends AccessibilityService {
         } catch (Exception e) {
             Log.w(TAG, "Couldn't open YaMa", e);
         }
+    }
+
+    private boolean isHomeScreen(String screen) {
+        if (screen.isEmpty()) return false;
+        String lower = screen.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("setting") || lower.contains("search") || lower.contains("profile")
+                || lower.contains("dialog") || lower.contains("notification")) {
+            return false;
+        }
+        return homeActivities.contains(screen) || lower.contains("homeactivity") || lower.endsWith(".home")
+                || lower.contains("launcheractivity");
     }
 
     @Override

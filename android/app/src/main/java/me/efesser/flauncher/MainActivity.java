@@ -55,6 +55,12 @@ import java.util.concurrent.Future;
 public class MainActivity extends FlutterActivity
 {
     private static final int PICK_WITH_APP = 4711;
+
+    /** Lets Fire TV screens opened from YaMa stay up for a while. */
+    private void pauseHomeRedirect(long millis) {
+        YamaHomeService.prefs(this).edit()
+                .putLong(YamaHomeService.KEY_PAUSE_UNTIL, System.currentTimeMillis() + millis).apply();
+    }
     private MethodChannel.Result pendingPick;
 
     /** Shows a chooser of apps that can provide pictures (Cx File Explorer etc). */
@@ -148,8 +154,14 @@ public class MainActivity extends FlutterActivity
                 case "applicationExists" -> result.success(applicationExists(call.arguments()));
                 case "launchActivityFromAction" -> result.success(launchActivityFromAction(call.arguments()));
                 case "launchApp" -> result.success(launchApp(call.arguments()));
-                case "openSettings" -> result.success(openSettings());
-                case "openAppInfo" -> result.success(openAppInfo(call.arguments()));
+                case "openSettings" -> {
+                    pauseHomeRedirect(30_000);
+                    result.success(openSettings());
+                }
+                case "openAppInfo" -> {
+                    pauseHomeRedirect(30_000);
+                    result.success(openAppInfo(call.arguments()));
+                }
                 case "uninstallApp" -> result.success(uninstallApp(call.arguments()));
                 case "isDefaultLauncher" -> result.success(isDefaultLauncher());
                 case "checkForGetContentAvailability" -> result.success(checkForGetContentAvailability());
